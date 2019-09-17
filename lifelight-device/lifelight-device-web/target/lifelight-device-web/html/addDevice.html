@@ -1,0 +1,111 @@
+<!DOCTYPE html>
+<html>
+<head lang="en">
+    <meta charset="UTF-8">
+    <title>后台管理系统</title>
+    <link rel="stylesheet" href="../layui/css/layui.css"/>
+</head>
+<body>
+<form class="layui-form" action="">
+    <div class="layui-form-item">
+        <label class="layui-form-label">设备名称</label>
+        <div class="layui-input-block">
+            <input type="text" name="title" required  lay-verify="required" placeholder="请输入设备名称" autocomplete="off" class="layui-input">
+        </div>
+    </div>
+    <div class="layui-form-item layui-form-text">
+        <label class="layui-form-label">设备描述</label>
+        <div class="layui-input-block">
+            <textarea name="desc" placeholder="请输入设备描述" class="layui-textarea"></textarea>
+        </div>
+    </div>
+    <div class="layui-form-item">
+        <label class="layui-form-label">设备类型</label>
+        <div class="layui-input-block">
+            <select name="city" lay-verify="required">
+                <option value=""></option>
+                <option value="0">类型0</option>
+                <option value="1">类型1</option>
+                <option value="2">类型2</option>
+                <option value="3">类型3</option>
+                <option value="4">类型4</option>
+            </select>
+        </div>
+    </div>
+    <div class="layui-form-item">
+        <label class="layui-form-label">厂商</label>
+        <div class="layui-input-block">
+            <select name="city" lay-verify="required">
+                <option value=""></option>
+                <option value="1">厂商1</option>
+                <option value="2">厂商2</option>
+                <option value="3">厂商3</option>
+            </select>
+        </div>
+    </div>
+    <div class="layui-form-item">
+        <label class="layui-form-label">品牌</label>
+        <div class="layui-input-block">
+            <select name="city" lay-verify="required">
+                <option value=""></option>
+                <option value="1">品牌1</option>
+                <option value="2">品牌2</option>
+                <option value="3">品牌3</option>
+            </select>
+        </div>
+    </div>
+    <div class="layui-form-item layui-form-text">
+        <label class="layui-form-label">设备库存</label>
+        <div class="layui-input-inline">
+            <input type="text" required lay-verify="required" placeholder="请输入设备库存" autocomplete="off" class="layui-input"/>
+        </div>
+        <label class="layui-form-label">设备租金</label>
+        <div class="layui-input-inline">
+            <input type="text" required lay-verify="required" placeholder="请输入设备租金" autocomplete="off" class="layui-input"/>
+        </div>
+    </div>
+    <div class="layui-form-item">
+        <label class="layui-form-label">设备投放地址</label>
+        <div class="layui-input-block">
+            <input type="text" name="title" required  lay-verify="required" placeholder="请输入设备投放地址" autocomplete="off" class="layui-input">
+        </div>
+    </div>
+    <div class="layui-form-item">
+        <label class="layui-form-label">是否上架</label>
+        <div class="layui-input-block">
+            <!--<input type="radio" name="sex" value="0" title="上架">
+            <input type="radio" name="sex" value="1" title="上架" checked>-->
+            <input type="checkbox" name="zzz" lay-skin="switch" lay-text="是|否">
+        </div>
+    </div>
+    <div class="layui-form-item">
+        <label class="layui-form-label">是否租赁</label>
+        <div class="layui-input-block">
+            <!--<input type="radio" name="sex" value="0" title="上架">
+            <input type="radio" name="sex" value="1" title="上架" checked>-->
+            <input type="checkbox" name="zzz" lay-skin="switch" lay-text="是|否">
+        </div>
+    </div>
+    <div class="layui-form-item">
+        <div class="layui-input-block">
+            <button class="layui-btn" lay-submit lay-filter="formDemo">立即提交</button>
+            <button type="reset" class="layui-btn layui-btn-primary">重置</button>
+        </div>
+    </div>
+</form>
+
+<script src="../layui/layui.js" charset="utf-8"></script>
+<script>
+    //Demo
+    layui.use('form', function(){
+        var form = layui.form();
+
+        //监听提交
+        form.on('submit(formDemo)', function(data){
+            layer.msg(JSON.stringify(data.field));
+            return false;
+        });
+    });
+</script>
+</body>
+</html>

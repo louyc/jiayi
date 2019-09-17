@@ -1,0 +1,11 @@
+com\lifelight\dubbo\service\impl\DeviceFirmsServiceImpl.class
+com\lifelight\dubbo\dao\DeviceDefinitionProjectMapper.class
+com\lifelight\dubbo\dao\DeviceBrandsMapper.class
+com\lifelight\dubbo\dao\DeviceDefinitionMapper.class
+com\lifelight\dubbo\service\impl\DeviceDefinitionServiceImpl.class
+com\lifelight\dubbo\dao\DeviceTypeMapper.class
+com\lifelight\dubbo\service\impl\DeviceBrandsServiceImpl.class
+com\lifelight\dubbo\service\impl\DeviceTypeServiceImpl.class
+com\lifelight\dubbo\dao\DeviceInfoMapper.class
+com\lifelight\dubbo\dao\DeviceFirmsMapper.class
+com\lifelight\dubbo\service\impl\DeviceInfoServiceImpl.class

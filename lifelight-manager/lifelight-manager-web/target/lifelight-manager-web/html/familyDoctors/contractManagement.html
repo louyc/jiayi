@@ -1,0 +1,792 @@
+<!DOCTYPE html>
+<html>
+<head lang="en">
+    <meta charset="UTF-8">
+    <title>签约服务合同管理</title>
+    <link rel="stylesheet" href="/layui/css/layui.css"/>
+    <link rel="stylesheet" href="/css/listStyle.css"/>
+    <style>
+    	.layui-form-label{width: 120px}
+    	.unit{line-height: 38px;float: left}
+    	.project{display: none}
+    	.layui-form-item .imgPreview {
+			width: 100px;
+			height: 100px;
+		}	
+		.imgPreview img {
+			width: 100%;
+			height: 100%;
+		}	
+		.blockImages i{cursor: pointer}
+		input[type="file"] {
+			width: 92px;
+			height: 38px;
+			margin-left: -96px;
+			vertical-align: middle;
+			opacity: 0;
+			filter: alpha(opacity = 0);
+		}
+		.blockImages{
+			height: auto;
+			padding-left: 100px;
+    		padding-top: 15px;
+		}
+    </style>
+</head>
+<body>
+<div class="layui-main layui-form" style="width: auto;min-width: 100%">
+	<div class="my-tab-select">
+	    <ul class="search-box layui-form">
+	    	<!-- <li>
+	            <div>
+		    		<label class="layui-form-label">乡镇卫生院：</label>
+	            	<select name="isSign" id="isSign">
+	            		<option value="all">全部</option>
+		            </select>
+	            </div>
+		    </li>
+	    	<li>
+	            <div>
+		    		<label class="layui-form-label">村卫生室：</label>
+	            	<select name="isSign" id="isSign">
+	            		<option value="all">全部</option>
+		            </select>
+	            </div>
+		    </li> -->
+		    <!-- <li>
+		    	<label>录入人：</label>
+		       	<div>
+			      	<select name="inputPerson" id="inputPerson">
+	            		<option value="" >全部</option>
+		            </select>
+			    </div>
+	    	</li> -->
+		    <li>
+		    	<label>姓        名：</label>
+		       	<div>
+			      	<input type="text" autocomplete="off" class="layui-input" id="name">
+			    </div>
+	    	</li>
+	    	<li>
+	            <label>健康卡号：</label>
+		       	<div>
+			      	<input type="text" autocomplete="off" class="layui-input" id="healthCard">
+			    </div>
+		    </li>
+	    	<li style="vertical-align: top;">
+	            <label>身份证号：</label>
+		       	<div>
+			      	<input type="text" autocomplete="off" class="layui-input" id="cardNum">
+			    </div>
+		    </li>
+   	    	<li style="vertical-align: top">
+	            <div>
+		    		<label class="layui-form-label">签约年度：</label>
+	            	<select name="year" id="year">
+	            		<option value="all" selected="selected">请选择</option>
+	            		<option value="2018">2018</option>
+	            		<option value="2017">2017</option>
+	            		<option value="2016">2016</option>
+	            		<option value="2015">2015</option>
+		            </select>
+	            </div>
+		    </li>
+   	    	<li style="vertical-align: top">
+	            <div>
+		    		<label class="layui-form-label">签约状态：</label>
+	            	<select name="signStatus" id="signStatus">
+	            		<option value="">全部</option>
+	            		<option value="1">签约中</option>
+	            		<option value="2">终止签约</option>
+		            </select>
+	            </div>
+		    </li>
+		    <li style="vertical-align: top;">
+	            <div>
+		    		<label class="layui-form-label">审核状态：</label>
+	            	<select name="auditStatus" id="auditStatus">
+	            		<option value="">全部</option>
+	            		<option value="1">通过审核</option>
+	            		<option value="2">未通过审核</option>
+	            		<option value="3">未经过审核</option>
+		            </select>
+	            </div>
+		    </li>
+	    	<li class="my-timer-li">
+	            <label>签约日期：</label>
+		       	<div class="layui-form-item " style="margin-bottom: 0;">
+			       	<div class="layui-input-inline" style="width: 100px;">
+			           <input type="text" name="price_min" autocomplete="off" class="layui-input" id="signStartTime">
+			      	</div>
+			      	<div class="layui-form-mid">-</div>
+			      	<div class="layui-input-inline" style="width: 100px;">
+			        	<input type="text" name="price_max" autocomplete="off" class="layui-input" id="signEndTime">
+			      	</div>
+			    </div>
+		    </li>
+		    <li style="vertical-align: top;">
+	            <div>
+		    		<label class="layui-form-label">服务包类型：</label>
+	            	<select name="servicePackage" id="servicePackage">
+	            		<option value="">全部</option>
+						<option value="0">基础包</option>
+						<option value="1">初级包（老年人）</option>
+						<option value="2">初级包(高血压)</option>
+						<option value="3">初级包(糖尿病)</option>
+						<option value="4">初级包(慢性呼吸道疾病)</option>
+						<option value="5">中级包(老年人)</option>
+						<option value="6">中级包(高血压)</option>
+						<option value="7">中级包(糖尿病)</option>
+						<option value="8">中级包（慢性呼吸道疾病）</option>
+						<option value="9">中级包（孕产妇和0-6岁儿童）</option>
+						<option value="10">高级包（老年人）</option>
+						<option value="11">高级包（高血压）</option>
+						<option value="12">高级包（糖尿病）</option>
+						<option value="13">高级包（慢性呼吸道疾病）</option>
+						<option value="14">高级包（孕产妇）</option>
+		            </select>
+	            </div>
+		    </li>
+		    <li style="vertical-align: top">
+	            <div>
+		    		<label class="layui-form-label">是否有偿：</label>
+	            	<select name="isPayment" id="isPayment">
+	            		<option value="">全部</option>
+	            		<option value="1">有偿服务包</option>
+	            		<option value="2">无偿服务包</option>
+		            </select>
+	            </div>
+		    </li>
+		    <li style="vertical-align: top;">
+	            <div>
+		    		<label class="layui-form-label">医保类型：</label>
+	            	<select name="medicalType" id="medicalType">
+	            		<option value="">全部</option>
+	            		<option value="1">新农合</option>
+	            		<option value="2">职工医保</option>
+	            		<option value="3">居民医保</option>
+	            		<option value="4">其他或无</option>
+		            </select>
+	            </div>
+		    </li>
+		    <li>
+	            <div>
+		    		<label class="layui-form-label">完成状态：</label>
+	            	<select name="finishStatus" id="finishStatus">
+	            		<option value="">全部</option>
+	            		<option value="1">已完成</option>
+	            		<option value="2">未完成</option>
+		            </select>
+	            </div>
+		    </li>
+    	</ul>
+    	<p>
+            <button class="layui-btn" id="search">搜索</button>
+            <button class="layui-btn" id="telePhoneMsg">批量下发短信</button>
+            <button class="layui-btn" id="pushMsg">批量推送消息</button>
+            <a class="layui-btn layui-btn-normal" href="javascript:;" id="exportBtn">导出</a>
+        </p>
+        
+    </div>
+    <div class="layui-tab layui-tab-brief" style="margin-top: 0" lay-filter="docDemoTabBrief">
+		<ul class="layui-tab-title"></ul>
+	</div>
+    <div class="layui-form" style="overflow: scroll">
+        <table class="layui-table list-table" id="mainTable" style="width: 2000px;">
+            <colgroup>
+                <col width="50">
+                <col width="80">
+                <col width="110">
+                <col width="65">
+                <col width="140">
+                <col width="">
+                <col width="">
+                <col width="110">
+                <col width="90">
+                <col width="190">
+                <col width="110">
+                <col width="">
+                <col width="90">
+                <col width="240">
+                <col width="215">
+            </colgroup>
+            <thead>
+            <tr>
+                <th><input type="checkbox" name="" lay-skin="primary" lay-filter="allChoose"></th>
+                <th>姓名</th>
+                <th>与户主关系</th>
+                <th>性别</th>
+                <th>身份证号码</th>
+                <th>居住地址</th>
+                <th>重点人群</th>
+                <th>联系方式</th>
+                <th>签约状态</th>
+                <th>履约起始日期</th>
+                <th>签约日期</th>
+                <th>签约机构</th>
+                <th>签约信息</th>
+                <th>服务信息</th>
+                <th>操作</th>
+            </tr>
+            </thead>
+            <tbody></tbody>
+        </table>
+    </div>
+    <div class="layui-form" id="infoSign" style="display: none">
+    	<div class="layui-form-item">
+    		<button class="layui-btn layui-btn-normal" id="testCheckIn_out">体检登记</button>
+    	</div>
+        <table class="layui-table">
+            <colgroup>
+                <col width="110">
+                <col width="200">
+                <col width="">
+                <col width="120">
+                <col width="110">
+                <col width="100">
+                <col width="220">
+            </colgroup>
+            <thead>
+            <tr>
+                <th>姓名</th>
+                <th>服务包</th>
+                <th>项目名称</th>
+                <th>检查时间</th>
+                <th>检查机构</th>
+                <th>录入人</th>
+                <th>操作</th>
+            </tr>
+            </thead>
+            <tbody></tbody>
+        </table>
+    </div>
+    <div id="handleInfo" class="layui-form" style="margin-top: 15px;display: none;padding: 0 15px;">
+    	<div class="layui-form-item">
+			<label class="layui-form-label">姓名</label>
+			<div class="layui-input-inline">
+				<input type="text" id="info_name" autocomplete="off" class="layui-input" disabled="disabled"/>
+			</div>
+			<label class="layui-form-label">性别</label>
+			<div class="layui-input-inline">
+				<select name="info_sex" id="info_sex" disabled="disabled">
+            		<option value="">请选择</option>
+            		<option value="1">男</option>
+            		<option value="2">女</option>
+	            </select>
+			</div>
+		</div>
+    	<div class="layui-form-item">
+			<label class="layui-form-label">项目</label>
+			<div class="layui-input-inline">
+				<input type="text" id="info_project_type_content" autocomplete="off" class="layui-input" disabled="disabled"/>
+			</div>
+			<label class="layui-form-label">执行时间</label>
+			<div class="layui-input-inline">
+				<input type="text" id="info_time" autocomplete="off" class="layui-input" onclick="layui.laydate({elem: this, istime: true, format: 'YYYY-MM-DD'})"/>
+			</div>
+		</div>
+    	<div class="layui-form-item">
+			<label class="layui-form-label">项目说明</label>
+			<div class="layui-input-inline">
+				<input type="text" id="info_project_type_desc" autocomplete="off" class="layui-input" />
+			</div>
+			<label class="layui-form-label">备注</label>
+			<div class="layui-input-inline">
+				<input type="text" id="info_remark" autocomplete="off" class="layui-input" />
+			</div>
+		</div>
+		<!-- 血糖 -->
+    	<div class="layui-form-item project type2">
+			<label class="layui-form-label">血糖</label>
+			<div class="layui-input-inline">
+				<select name="xuetang" id="xuetang">
+            		<option value="1">未见异常</option>
+            		<option value="2">异常</option>
+	            </select>
+			</div>
+		</div>
+		<!-- 尿常规 -->
+    	<div class="layui-form-item project type3">
+			<label class="layui-form-label">尿白细胞（LEU）</label>
+			<div class="layui-input-inline">
+				<select name="RU_LEU" id="RU_LEU">
+            		<option value="1">-</option>
+            		<option value="2">+</option>
+            		<option value="3">++</option>
+            		<option value="4">+++</option>
+	            </select>
+			</div>
+			<div class="unit">个/HP</div>
+			<label class="layui-form-label">尿蛋白（Pro）</label>
+			<div class="layui-input-inline">
+				<select name="RU_Pro" id="RU_Pro">
+            		<option value="1">-</option>
+            		<option value="2">+</option>
+            		<option value="3">++</option>
+            		<option value="4">+++</option>
+	            </select>
+			</div>
+			<div class="unit">-/+</div>
+		</div>
+    	<div class="layui-form-item project type3">
+			<label class="layui-form-label">尿糖(Glu)</label>
+			<div class="layui-input-inline">
+				<select name="RU_Glu" id="RU_Glu">
+            		<option value="1">-</option>
+            		<option value="2">+</option>
+            		<option value="3">++</option>
+            		<option value="4">+++</option>
+	            </select>
+			</div>
+			<div class="unit">-/+</div>
+		</div>
+		<!-- 心电图 -->
+    	<div class="layui-form-item project type4">
+			<label class="layui-form-label">心率、心律、ST_T情况</label>
+			<div class="layui-input-inline">
+				<select name="ST_T" id="ST_T">
+            		<option value="1">未见异常</option>
+            		<option value="2">异常</option>
+	            </select>
+			</div>
+		</div>
+		<!-- 全胸片 -->
+    	<div class="layui-form-item project type16">
+			<label class="layui-form-label">肺、心脏脏器形状</label>
+			<div class="layui-input-inline">
+				<select name="ACF_fxz" id="ACF_fxz">
+            		<option value="1">未见异常</option>
+            		<option value="2">异常</option>
+	            </select>
+			</div>
+		</div>
+		<!-- 肝胆胰脾B超 -->
+    	<div class="layui-form-item project type5" >
+			<label class="layui-form-label">肝胆胰脾器形状</label>
+			<div class="layui-input-inline">
+				<select name="FO_gdyp" id="FO_gdyp">
+            		<option value="1">未见异常</option>
+            		<option value="2">异常</option>
+	            </select>
+			</div>
+		</div>
+		<!-- 血脂 -->
+    	<div class="layui-form-item project type6">
+			<label class="layui-form-label">总胆固醇（CHOL）</label>
+			<div class="layui-input-inline">
+				<input type="text" id="BF_CHOL" autocomplete="off" class="layui-input" />
+			</div>
+			<div class="unit">Mmol/L</div>
+			<label class="layui-form-label">高密度脂蛋白胆固醇（HDL_C）</label>
+			<div class="layui-input-inline">
+				<input type="text" id="BF_HDL_C" autocomplete="off" class="layui-input" />
+			</div>
+			<div class="unit">Mmol/L</div>
+		</div>
+		<!-- 血脂 -->
+    	<div class="layui-form-item project type6">
+			<label class="layui-form-label">总甘油三酯（TG）</label>
+			<div class="layui-input-inline">
+				<input type="text" id="BF_TG" autocomplete="off" class="layui-input" />
+			</div>
+			<div class="unit">Mmol/L</div>
+			<label class="layui-form-label">低密度脂蛋白胆固醇（LDL_C）</label>
+			<div class="layui-input-inline">
+				<input type="text" id="BF_LDL_C" autocomplete="off" class="layui-input" />
+			</div>
+			<div class="unit">Mmol/L</div>
+		</div>
+		<!-- 肝功能 -->
+    	<div class="layui-form-item project type7">
+			<label class="layui-form-label">总胆红素（TBLL）</label>
+			<div class="layui-input-inline">
+				<input type="text" id="TBLL" autocomplete="off" class="layui-input" />
+			</div>
+			<div class="unit">Μmol/L</div>
+			<label class="layui-form-label">谷丙转氨酶（ALT）</label>
+			<div class="layui-input-inline">
+				<input type="text" id="ALT" autocomplete="off" class="layui-input" />
+			</div>
+			<div class="unit">U/L</div>
+		</div>
+		<!-- 肝功能 -->
+    	<div class="layui-form-item project type7">
+			<label class="layui-form-label">谷草转氨酶（AST）</label>
+			<div class="layui-input-inline">
+				<input type="text" id="AST" autocomplete="off" class="layui-input" />
+			</div>
+			<div class="unit">U/L</div>
+		</div>
+		<!-- 肾功能 -->
+    	<div class="layui-form-item project type8">
+			<label class="layui-form-label">尿素氮（BUN）</label>
+			<div class="layui-input-inline">
+				<input type="text" id="BUN" autocomplete="off" class="layui-input" />
+			</div>
+			<div class="unit">Μmol/L</div>
+			<label class="layui-form-label">肌酐（Gr）</label>
+			<div class="layui-input-inline">
+				<input type="text" id="Gr" autocomplete="off" class="layui-input" />
+			</div>
+			<div class="unit">Μmol/L</div>
+		</div>
+		<!-- 一体机健康检查 -->
+    	<div class="layui-form-item project type10">
+			<label class="layui-form-label">尿常规</label>
+			<div class="layui-input-inline">
+				<select name="YTJ_ru" id="YTJ_ru">
+            		<option value="1">未见异常</option>
+            		<option value="2">异常</option>
+	            </select>
+			</div>
+			<label class="layui-form-label">血糖</label>
+			<div class="layui-input-inline">
+				<select name="YTJ_xuetang" id="YTJ_xuetang">
+            		<option value="1">未见异常</option>
+            		<option value="2">异常</option>
+	            </select>
+			</div>
+		</div>
+		<!-- 一体机健康检查 -->
+    	<div class="layui-form-item project type10">
+			<label class="layui-form-label">血氧饱和度（SPO2）</label>
+			<div class="layui-input-inline">
+				<input type="text" id="YTJ_SPO2" autocomplete="off" class="layui-input" />
+			</div>
+			<div class="unit">%</div>
+			<label class="layui-form-label">心电图检查</label>
+			<div class="layui-input-inline">
+				<select name="YTJ_ecg" id="YTJ_ecg">
+            		<option value="1">未见异常</option>
+            		<option value="2">异常</option>
+	            </select>
+			</div>
+		</div>
+		<!-- 一体机健康检查 -->
+		<div class="layui-form-item project type10" >
+			<label class="layui-form-label">血脂</label>
+			<div class="layui-input-inline">
+				<select name="YTJ_ru" id="YTJ_bf">
+            		<option value="1">未见异常</option>
+            		<option value="2">异常</option>
+	            </select>
+			</div>
+		</div>
+		<!-- 家庭巡检 -->
+		<div class="layui-form-item project type9" >
+			<label class="layui-form-label">家庭巡诊及健教</label>
+			<div class="layui-input-inline">
+				<select name="FI_jtxj" id="FI_jtxj">
+            		<option value="1">未见异常</option>
+            		<option value="2">异常</option>
+	            </select>
+			</div>
+		</div>
+		<!-- 血清尿酸化验 -->
+		<div class="layui-form-item project type11" >
+			<label class="layui-form-label">尿酸（UA）</label>
+			<div class="layui-input-inline">
+				<input type="text" id="SUA_ua" autocomplete="off" class="layui-input" />
+			</div>
+			<div class="unit">Μmol/L</div>
+		</div>
+		<!-- 血常规 -->
+		<div class="layui-form-item project type14" >
+			<label class="layui-form-label">血常规</label>
+			<div class="layui-input-inline">
+				<select name="BR_br" id="BR_br">
+            		<option value="1">未见异常</option>
+            		<option value="2">异常</option>
+	            </select>
+			</div>
+		</div>
+		<!-- 双肾B超 -->
+		<div class="layui-form-item project type12" >
+			<label class="layui-form-label">双肾、输尿管、膀胱、前列腺（仅男性）</label>
+			<div class="layui-input-inline">
+				<select name="DB_man" id="DB_man">
+            		<option value="1">未见异常</option>
+            		<option value="2">异常</option>
+	            </select>
+			</div>
+		</div>
+		<!-- 其他系统B超 -->
+		<div class="layui-form-item project type17" >
+			<label class="layui-form-label">其他系统B超</label>
+			<div class="layui-input-inline">
+				<select name="OB_other" id="OB_other">
+            		<option value="1">未见异常</option>
+            		<option value="2">异常</option>
+	            </select>
+			</div>
+		</div>
+		<!-- B超（彩超） -->
+		<div class="layui-form-item project type13" >
+			<label class="layui-form-label">子宫、卵管、卵</label>
+			<div class="layui-input-inline">
+				<select name="CB_women" id="CB_women">
+            		<option value="1">未见异常</option>
+            		<option value="2">异常</option>
+	            </select>
+			</div>
+		</div>
+		<!-- 基础项目 -->
+		<div class="layui-form-item project type1" >
+			<label class="layui-form-label">基础项目</label>
+			<div class="layui-input-inline">
+				<select name="BP_info" id="BP_info">
+            		<option value="1">已做</option>
+            		<option value="2">未做</option>
+	            </select>
+			</div>
+		</div>
+		<!-- 凝血四项 -->
+		<div class="layui-form-item project type15" >
+			<label class="layui-form-label">凝血酶原时间（PT）</label>
+			<div class="layui-input-inline">
+				<input type="text" id="FC_pt" autocomplete="off" class="layui-input" />
+			</div>
+			<div class="unit">s</div>
+			<label class="layui-form-label">活化部分凝血活酶时间（APTT）</label>
+			<div class="layui-input-inline">
+				<input type="text" id="FC_APTT" autocomplete="off" class="layui-input" />
+			</div>
+			<div class="unit">s</div>
+		</div>
+		<!-- 凝血四项 -->
+		<div class="layui-form-item project type15" >
+			<label class="layui-form-label">凝血酶时间（TT）</label>
+			<div class="layui-input-inline">
+				<input type="text" id="FC_TT" autocomplete="off" class="layui-input" />
+			</div>
+			<div class="unit">s</div>
+			<label class="layui-form-label">纤维蛋白原（FIB）</label>
+			<div class="layui-input-inline">
+				<input type="text" id="FC_FIB" autocomplete="off" class="layui-input" />
+			</div>
+			<div class="unit">sg/L</div>
+		</div>
+		<!-- 心梗三项检查 -->
+		<div class="layui-form-item project type18" >
+			<label class="layui-form-label">肌钙蛋白（CTnI）</label>
+			<div class="layui-input-inline">
+				<select name="MI_CTnI" id="MI_CTnI">
+            		<option value="1">阴性</option>
+            		<option value="2">阳性</option>
+	            </select>
+			</div>
+			<label class="layui-form-label">肌酸激酶同工酶（CKMB）</label>
+			<div class="layui-input-inline">
+				<select name="MI_CKMB" id="MI_CKMB">
+            		<option value="1">阴性</option>
+            		<option value="2">阳性</option>
+	            </select>
+			</div>
+		</div>
+		<!-- 心梗三项检查 -->
+		<div class="layui-form-item project type18" >
+			<label class="layui-form-label">肌红蛋白（Myo）</label>
+			<div class="layui-input-inline">
+				<select name="MI_Myoo" id="MI_Myoo">
+            		<option value="1">阴性</option>
+            		<option value="2">阳性</option>
+	            </select>
+			</div>
+		</div>
+		<!-- 甲状腺彩超检查/心脏彩超检查 -->
+		<div class="layui-form-item project type19" >
+			<label class="layui-form-label">甲状腺彩超检查/心脏彩超检查</label>
+			<div class="layui-input-inline">
+				<select name="TC_TC" id="TC_TC">
+            		<option value="1">未查</option>
+            		<option value="2">甲状腺彩超检查</option>
+            		<option value="3">心脏彩超检查</option>
+	            </select>
+			</div>
+		</div>
+		<!-- 血糖检查 -->
+		<div class="layui-form-item project type20" >
+			<label class="layui-form-label">血糖</label>
+			<div class="layui-input-inline">
+				<input type="text" id="BGC_xuetang" autocomplete="off" class="layui-input" />
+			</div>
+			<div class="unit">Mmol/L</div>
+		</div>
+		<!-- 糖化血红蛋白 -->
+		<div class="layui-form-item project type21" >
+			<label class="layui-form-label">糖化血红蛋白（HBAIC）</label>
+			<div class="layui-input-inline">
+				<input type="text" id="HBA1C_HBAIC" autocomplete="off" class="layui-input" />
+			</div>
+			<div class="unit">%</div>
+		</div>
+		<div class="layui-form-item">
+			<label class="layui-form-label">图片</label>
+			<div class="layui-input-inline">
+				<button class="layui-btn checkPic">选择图片</button>
+				<input type="file" name="file" class="layui-upload-file"
+					id="aptitude" multiple="multiple"
+					accept="image/png,image/gif,image/jpg,image/bmp,image/jpeg" />
+			</div>
+			<div class="layui-form-mid layui-word-aux">最多支持上传五张图片</div>
+			<div class="layui-clear blockImages"></div>
+		</div>
+		<div class="layui-form-item" style="margin-top: 35px;">
+			<div class="layui-input-block">
+				<button class="layui-btn layui-btn-normal" id="testCheckIn">体检登记</button>
+				<button class="layui-btn" id="addform">保存</button>
+				<input type="hidden" value="" id="personScheduleId"/>
+			</div>
+		</div>
+    </div>
+    <!-- 数据详情 -->
+    <div id="dataDetail" style="display: none">
+     	<!-- <h3 class="dataTit">用户名称：<span class="username"></span>性别：<span class="usersex"></span>年龄：<span class="userage"></span></h3> -->
+	    <div class="layui-form search-box">
+    		<ul>
+	    		<li>
+			     	项目名称：
+				    <div class="layui-inline search-input">
+					     <select id="dataType">
+					     	<option  value="all">请选择项目名称</option>
+					     </select>
+				    </div>
+		    	</li>
+	    		<li>
+			      	测量时间：<input type="text" name="date" id="startTime_data" placeholder="年/月/日" autocomplete="off" class="search-input">
+					至
+					<input type="text" name="date" id="endTime_data" placeholder="年/月/日" autocomplete="off" class="search-input">
+			    </li>
+		    </ul>
+		    <p style="text-align: right; margin:10px;">
+	    		<button class="layui-btn" id="d-search">搜索</button>
+		    </p>
+     	</div>
+	    <div class="table-list">
+			<table class="layui-table list-table">
+		        <colgroup>
+		            <col >
+		            <col >
+		            <col >
+		        </colgroup>
+		        <thead>
+			        <tr>
+			            <th>项目名称</th>
+			            <th>数值</th>
+			            <!-- <th>单位</th> -->
+			           <!--  <th>参考意见</th> -->
+			            <th>测量时间</th>
+			        </tr>
+		        </thead>
+		        <tbody>
+		        </tbody>
+		    </table>
+		    <div id="pageBox" style="text-align: center;"></div>
+		</div>
+    </div>
+    <div id="process" style="display: none">
+    	<div class="table-list">
+			<table class="layui-table list-table">
+		        <colgroup>
+		            <col >
+		            <col >
+		        </colgroup>
+		        <thead>
+			        <tr>
+			            <th>流程名称</th>
+			            <th>操作</th>
+			        </tr>
+		        </thead>
+		        <tbody>
+		        	<tr>
+		        		<td>高血压患者随访服务包</td>
+		        		<td>
+		        			<button class="layui-btn userProcess" data-id="4417">调用</button>
+		        			<button class="layui-btn checkProcess" data-id="1">查询</button>
+		        		</td>
+		        	</tr>
+		        	<tr>
+		        		<td>2型糖尿病慢病随访服务</td>
+		        		<td>
+		        			<button class="layui-btn userProcess" data-id="4417">调用</button>
+		        			<button class="layui-btn checkProcess" data-id="2">查询</button>
+		        		</td>
+		        	</tr>
+		        	<tr>
+		        		<td>糖尿病慢病随访服务</td>
+		        		<td>
+		        			<button class="layui-btn userProcess" data-id="4417">调用</button>
+		        			<button class="layui-btn checkProcess" data-id="3">查询</button>
+		        		</td>
+		        	</tr>
+		        	<tr>
+		        		<td>冠心病患者随访服务</td>
+		        		<td>
+		        			<button class="layui-btn userProcess" data-id="4417">调用</button>
+		        			<button class="layui-btn checkProcess" data-id="4">查询</button>
+		        		</td>
+		        	</tr>
+		        	<tr>
+		        		<td>65岁以上老人自理能力评估服务</td>
+		        		<td>
+		        			<button class="layui-btn userProcess" data-id="4417">调用</button>
+		        			<button class="layui-btn checkProcess" data-id="5">查询</button>
+		        		</td>
+		        	</tr>
+		        	<tr>
+		        		<td>孕产妇高危因素初筛孕产妇随访服务</td>
+		        		<td>
+		        			<button class="layui-btn userProcess" data-id="4417">调用</button>
+		        			<button class="layui-btn checkProcess" data-id="6">查询</button>
+		        		</td>
+		        	</tr>
+		        	<tr>
+		        		<td>0~6岁儿童发育评估随访服务</td>
+		        		<td>
+		        			<button class="layui-btn userProcess" data-id="4417">调用</button>
+		        			<button class="layui-btn checkProcess" data-id="7">查询</button>
+		        		</td>
+		        	</tr>
+		        	<tr>
+		        		<td>成年人体脂自测及管控建议服务</td>
+		        		<td>
+		        			<button class="layui-btn userProcess" data-id="4417">调用</button>
+		        			<button class="layui-btn checkProcess" data-id="8">查询</button>
+		        		</td>
+		        	</tr>
+		        </tbody>
+		    </table>
+		</div>
+    </div>
+    <!-- <div id="process" style="display: none">
+    	<div class="table-list">
+			<table class="layui-table list-table">
+		        <colgroup>
+		            <col >
+		            <col >
+		        </colgroup>
+		        <thead>
+			        <tr>
+			            <th>流程名称</th>
+			            <th>操作</th>
+			        </tr>
+		        </thead>
+		        <tbody>
+		        </tbody>
+		    </table>
+		</div>
+    </div> -->
+    <div id="pagging"></div>
+    <div id="phoneMsg" style="display: none;padding: 0 15px;padding-top: 20px;">
+    	<div class="layui-form-item layui-form-text">
+        	<textarea name="desc" maxlength="70" id="phoneMsg_text" placeholder="请输入短信内容" class="layui-textarea"></textarea>
+    	</div>
+    </div>
+</div>
+<script src="/layui/layui.js" charset="utf-8"></script>
+<script src="/js/jquery-2.1.1.min.js"></script>
+<script src="/js/jquery-json.js"></script>
+<script src="/js/tool.js"></script>
+<script src="/js/familyDoctors/contractManagement.js"></script>
+</body>
+</html>

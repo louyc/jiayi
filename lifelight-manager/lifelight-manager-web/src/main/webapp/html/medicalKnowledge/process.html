@@ -1,0 +1,248 @@
+<!DOCTYPE html>
+<html>
+<head lang="en">
+    <meta charset="UTF-8">
+    <title>图谱工具</title>
+    <link rel="icon" href="../../favicon.ico" type="image/x-icon" />
+ 	<link rel="shortcut icon" href="../../favicon.ico" type="image/x-icon" />
+    <link rel="stylesheet" href="../../layui/css/layui.css"/>
+</head>
+<body>
+<div class="layui-main" style="width: auto">
+    <div class="my-tab-select">
+        <div class="layui-form">
+        <ul>
+            <li>
+                <label for="vender">流程名称：</label>
+                <input type="text" class="layui-input" id="goodsName"/>
+            </li>
+        </ul>
+        <p>
+        	<button class="layui-btn " id="search">搜索</button>
+        	<button class="layui-btn " id="add">新增</button>
+       	</p>
+        </div>
+    </div>
+    <div class="layui-form">
+        <table class="layui-table" style="width: auto;min-width: 100%">
+            <colgroup>
+	            <col width="100">
+	            <col width="">
+	            <col width="200">
+	            <col width="250">
+            </colgroup>
+            <thead>
+            	<tr>
+            		<th>序号</th>
+            		<th>流程名称</th>
+            		<th>创建时间</th>
+            		<th>操作</th>
+            	</tr>
+            </thead>
+            <tbody>
+            </tbody>
+        </table>
+    </div>
+    <div id="pagging"></div>
+    <div id="addDoctors" class="layui-form" style="display: none;padding-top: 15px">
+    	<div class="layui-form-item">
+   			<label class="layui-form-label">已选医生</label>
+    		<div class="layui-input-block">
+    			<input type="text" id="selectedDoctor" autocomplete="off" class="layui-input">
+    			<input type="hidden" id="selectedDoctorId" autocomplete="off" class="layui-input">
+    		</div>
+    	</div>
+    	<div class="layui-form-item">
+   			<label class="layui-form-label">选择医生</label>
+    		<div class="layui-input-inline" style="width: 290px;">
+    			<select id="doctorList" lay-verify="required" lay-search="">
+		            <option value="">直接选择或搜索选择</option>
+		        </select>
+    		</div>
+    		<div class="layui-input-inline">
+    			<button class="layui-btn layui-btn-small addDoctor" style="margin-top: 4px">添加</button>
+    		</div>
+    	</div>
+    </div>
+</div>
+<script src="../../layui/layui.js" charset="utf-8"></script>
+<script src="../../js/tool.js" charset="utf-8"></script>
+<script src="/js/jquery-2.1.1.min.js"></script>
+<script src="/js/jquery-json.js"></script>
+<script type="text/javascript">
+	layui.use(['element', 'form', 'layer', 'jquery','laypage'], function() {
+		var $ = layui.jquery,form = layui.form(),element = layui.element();
+		var layer = layui.layer,laypage = layui.laypage,pageSum=0;
+		//获取页面tooken
+		var token = window.utils.getCookie('token');
+		var host = 'workflow-doctor-test.lifelight365.com';
+		var managerId = window.utils.getCookie("managerId");
+		getData(1);
+		function getData(pageNum){
+			layer.open({type: 3,content:""})
+			var title = $("#goodsName").val();
+			var obj={title:title,managerId:managerId,showCount:10,currentPage:pageNum};
+			$.ajax({
+		    	url:'/procedure/getPageProcedures',
+		    	type:'POST',
+	            data: $.toJSON(obj),
+	            dataType:'json',
+	            contentType: "application/json",
+	            success : function(data){
+		        	layer.close(layer.index);//取消遮罩
+		        	pageSum = data.pagesCount;
+		        	if(data.successful){
+		        		var html="";
+		        		if(data.items.lenght<=0){
+							layer.msg("暂无数据！");
+							return;
+		        		}
+		        		$.each(data.items,function(index,item){
+		        			html+='<tr><td>'+(index+1)+'</td>';
+		        			var title = item.title?item.title:"";
+		        			html+='<td>'+title+'</td>';
+		        			var created_at = item.updateTime?item.updateTime:"";
+		        			html+='<td>'+created_at+'</td>';
+		        			html+='<td><input type="hidden" value="'+item.id+'"><button class="layui-btn layui-btn-small revise">修改</button>';
+		        			html+='<button data-id="'+item.id+'" class="layui-btn layui-btn-small share">分享</button>';
+		        			html+='<a href="dialogue.html?id='+item.id+'" class="layui-btn layui-btn-small dialogue">模拟对话</button></td>';
+		        			html+='</tr>'
+		        		})
+		        		$("table tbody").html(html);
+		        		form.render();
+		        		//分页
+		        		laypage({
+					        cont: 'pagging'
+				    		, pages: pageSum
+					        , curr: data.pageNumber||1
+					        ,jump: function(obj, first){
+					        	if(!first){
+						            pageNum = obj.curr;
+						            getData(pageNum);
+					            }
+					        }
+		        		});
+		        		$(".revise").click(function(){
+		        			var id=$(this).prev("input").val();
+		        			window.open("workflow.html?id="+id);
+							/*window.open(encodeURI('http://'+host+'/procedure/update?id='+id+'&token='+token)); */
+		        		})
+		        		$(".share").click(function(){
+		        			var id=$(this).attr("data-id");//流程Id
+		        			$("#selectedDoctor").val();
+		        			$("#doctorList").val();
+		        			form.render();
+		        			layer.open({
+		        				title:'图谱分享',
+		        	            type: 1,
+		        	            area: ['650px', '400px'],//宽高
+		        	            shade: 0.8,
+		        	            btn:['确定'],
+		        	            content: $('#addDoctors'),
+		        	            success: function(layero){
+		        	            	$.ajax({
+		        	    				url:'/procedure/getBesharedUsers?procedureId='+id,
+		        	    	        	type:'POST',
+		        	    	        	success:function(res){
+		        	    	            	if(res.successful){
+		        	    	            		var data = res.data;
+		        	    	            		var names="";
+		        	    	            		var ids="";
+		        	    	            		$.each(data,function(index,item){
+		        	    	            			if(names){
+		        	    	            				names +=","
+		        	    	            			}
+		        	    	            			names += item.name
+		        	    	            			if(ids){
+		        	    	            				ids +=","
+		        	    	            			}
+		        	    	            			ids += item.manager_id
+		        	    	            		})
+		        	    	            		$("#selectedDoctor").val(names);
+		        	    	            		$("#selectedDoctorId").val(ids);
+		        	    	            	}
+		        	    	        	},
+			        	    			error: function(error){
+		        	    	        		layer.msg("查询失败！",{zIndex:layer.index});
+		        	    	        	}
+		        	    			})
+		        	            },
+		        	            yes: function(index, layero){
+		        	            	var doctorIds = $("#selectedDoctorId").val();
+		        	            	$.ajax({
+		        	    				url:'/procedure/share?id='+id+'&users='+doctorIds,
+		        	    	        	type:'POST',
+		        	    	        	success:function(res){
+		        	    	            	if(res.successful){
+		        	    	            		layer.close(index);
+		        	    	            		layer.msg(res.resultCode.message,{zIndex: layer.index});
+		        	    	            	}else{
+		        	    	            		layer.msg(res.resultCode.message,{zIndex: layer.index});
+		        	    	            	}
+		        	    	        	},
+		        	    	        	error: function(error){
+		        	    	        		layer.msg("分享失败！",{zIndex: layer.index});
+		        	    	        	}
+		        	    			})
+		        	            }
+		        	    	})
+		        		})
+		        	}else{
+		        		layer.msg(data.resultCode.message);
+		        	}
+		        },
+		        error : function(data){
+		        	layer.close(layer.index);//取消遮罩
+		        	layer.msg('加载失败！');
+		        }
+		    });
+			
+		}
+		$("#add").on("click",function(){
+			window.open("workflow.html");
+		});
+		$("#search").on("click",function(){
+			getData(1);
+		})
+		getDoctors();
+		/* 获取所有医生 */
+		function getDoctors(){
+			var sQuery={name:"",mobile:"",roleId:"1",userStatus:"1",inUse:"1",pageSize:100000,pageNumber:"1"};
+			$.ajax({
+				url:'/backstage/managerList',
+	        	type:'POST',
+	        	data: sQuery,
+	    		dataType: "json",
+	        	success:function(res){
+	            	if(res.successful){
+	            		var data = res.items;
+	            		var html = '<option value="">直接选择或搜索选择</option>';
+	            		$.each(data,function(index,item){
+	            			html +='<option value="'+item.managerId+'">'+item.name+'</option>'
+	            		})
+	            		$("#doctorList").html(html)
+	            		form.render();
+	            	}
+	        	}
+			})
+		}
+		$(".addDoctor").on("click",function(){
+			var selectedDoctor = $("#selectedDoctor").val();//已分享医生名称
+			var selectedDoctorId = $("#selectedDoctorId").val();//已分享医生名称Id
+			var doctor = $("#doctorList").val();//选中医生id
+			var doctorName = $("#doctorList").next('.layui-form-select').find(".layui-input").val();//选中医生名称
+			if(selectedDoctor){
+				selectedDoctor += ","
+			}
+			selectedDoctor += doctorName;
+			$("#selectedDoctor").val(selectedDoctor)
+			if(selectedDoctorId){
+				selectedDoctorId += ","
+			}
+			selectedDoctorId += doctor;
+			$("#selectedDoctorId").val(selectedDoctorId)
+		})
+	});	
+</script>
+</body>
+</html>

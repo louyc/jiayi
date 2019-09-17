@@ -1,0 +1,2156 @@
+<!DOCTYPE html>
+<html>
+<head>
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>医学知识图谱工具</title>
+<meta name="description" content="An editor of flow diagrams that supports deletion by dropping onto a particular node and relinking by dragging a link." />
+<!-- Copyright 1998-2018 by Northwoods Software Corporation. -->
+<meta charset="UTF-8">
+<link rel="icon" href="../../favicon.ico" type="image/x-icon" />
+<link rel="shortcut icon" href="../../favicon.ico" type="image/x-icon" />
+<link rel="stylesheet" href="../../layui/css/layui.css"/>
+<style type="text/css">
+  	#node_handle{margin-right: 20px;margin-top: 52px}
+  	.layui-form-label{width: 80px!important}
+  	.layui-input-block{margin-left: 110px!important}
+  	.stepDataInput{margin: 10px 0;border: 1px solid #ccc;line-height: 2.5;text-indent: 15px;}
+  	.checkedP{border: 1px solid #009688}
+  	.dataHandle{display: none}
+  	#aptitude{
+		width: 92px;
+		height: 38px;
+		margin-left: -96px;
+		vertical-align: middle;
+		opacity: 0;
+		filter: alpha(opacity = 0);
+	}
+</style>
+<script src="/js/jquery-2.1.1.min.js"></script>
+<script src="/js/jquery-json.js"></script>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/gojs/1.7.15/go-debug.js"></script>
+<script src="../../js/tool.js" charset="utf-8"></script>
+<script src="/layui/layui.js"></script>
+<script id="code">
+    var stepIndex = "";//步骤相关数据中变量的 index
+    window.myDiagram = null;
+    function init() {
+      if (window.goSamples) goSamples();  // init for these samples -- you don't need to call this
+      var goObj = go.GraphObject.make;  // for conciseness in defining templates
+      myDiagram =
+        goObj(go.Diagram, "myDiagramDiv",
+          {
+            allowCopy: true,
+            initialContentAlignment: go.Spot.Center,
+            allowZoom: true,
+            allowRelink: true,
+            layout: goObj(go.LayeredDigraphLayout,
+                {
+                  setsPortSpots: false,  // Links already know their fromSpot and toSpot
+                  columnSpacing: 5,
+                  isInitial: false,
+                  isOngoing: false
+                }),
+            validCycle: go.Diagram.CycleNotDirected,
+            "undoManager.isEnabled": true,
+            "toolManager.hoverDelay": 1000,
+            "toolManager.toolTipDuration": 20000
+          });
+      // when the document is modified, add a "*" to the title and enable the "Save" button
+      myDiagram.addDiagramListener("Modified", function(e) {
+        var button = document.getElementById("save");
+        if (button) button.disabled = !myDiagram.isModified;
+        var idx = document.title.indexOf("*");
+        if (myDiagram.isModified) {
+          if (idx < 0) document.title += "*";
+        } else {
+          if (idx >= 0) document.title = document.title.substr(0, idx);
+        }
+      });
+      var graygrad = goObj(go.Brush, "Linear", { 0: "white", 0.1: "whitesmoke", 0.9: "whitesmoke", 1: "lightgray" });
+      // 基本模版
+      myDiagram.nodeTemplate = goObj(
+   		  go.Node, 
+   		  "Spot",
+   		  { selectionAdorned: true, textEditable: false, locationObjectName: "BODY",selectionChanged: nodeSelectionChanged },
+          new go.Binding("location", "loc", go.Point.parse).makeTwoWay(go.Point.stringify),
+          // 主体
+          goObj(go.Panel, "Auto",
+            { name: "BODY",portId: "from",click: nodeBodyClick },//主体的点击事件
+            /* goObj(go.Shape, "Rectangle",
+              { fill: graygrad, stroke: "gray", minSize: new go.Size(120, 21) },
+              new go.Binding("fill", "isSelected", function(s) { return s ? "dodgerblue" : graygrad; }).ofObject(),
+            ),  */
+            /* 图片 */
+            goObj(go.Picture,
+               {
+                 name: "Picture",
+                 desiredSize: new go.Size(120, 35)
+               },
+               new go.Binding("source", "key", findHeadShot)),
+            goObj(go.TextBlock,
+              { stroke: "black", font: "14px sans-serif", editable: true,
+                margin: new go.Margin(3, 3+11, 3, 21), alignment: go.Spot.Left },
+              new go.Binding("text").makeTwoWay())
+          ),
+          // 添加
+          goObj(go.Panel, "Auto",
+            { alignment: go.Spot.Right, portId: "from", fromLinkable: true, cursor: "pointer", click: addNodeAndLink },
+            goObj(go.Shape, "Circle",
+              { width: 22, height: 22, fill: "white", stroke: "dodgerblue", strokeWidth: 3 }),
+            goObj(go.Shape, "PlusLine",
+              { width: 11, height: 11, fill: null, stroke: "dodgerblue", strokeWidth: 3 })
+          ),
+          // 连接线的点
+          goObj(go.Panel, "Auto",
+            { alignment: go.Spot.Left, portId: "to", toLinkable: true },
+            goObj(go.Shape, "Circle",
+              { width: 8, height: 8, fill: "white", stroke: "gray" }),
+            goObj(go.Shape, "Circle",
+              { width: 4, height: 4, fill: "dodgerblue", stroke: null })
+          )
+        );
+      myDiagram.contextMenu =
+          goObj(go.Adornment, "Vertical",
+            goObj("ContextMenuButton",
+              goObj(go.TextBlock, "Rename"),
+              { click: function(e, obj) { e.diagram.commandHandler.editTextBlock(); } },
+              new go.Binding("visible", "", function(o) { return o.diagram && o.diagram.commandHandler.canEditTextBlock(); }).ofObject()),
+            // add one for Editing...
+            goObj("ContextMenuButton",
+              goObj(go.TextBlock, "Delete"),
+              { click: function(e, obj) { e.diagram.commandHandler.deleteSelection(); } },
+              new go.Binding("visible", "", function(o) { return o.diagram && o.diagram.commandHandler.canDeleteSelection(); }).ofObject()),
+            goObj("ContextMenuButton",
+             		goObj(go.TextBlock, "Copy"), { click: function(e, obj) { e.diagram.commandHandler.copySelection(); } },
+                  new go.Binding("visible", "", function(o) {
+                      return o.diagram.commandHandler.canCopySelection();
+                  }).ofObject()
+              ),
+             goObj("ContextMenuButton",
+             		goObj(go.TextBlock, "Paste"), { click: function(e, obj) { e.diagram.commandHandler.pasteSelection(); } },
+                  new go.Binding("visible", "", function(o) {
+                      return o.diagram.commandHandler.canPasteSelection();
+                  }).ofObject()
+              )
+          );
+      myDiagram.nodeTemplate.contextMenu =
+        goObj(go.Adornment, "Vertical",
+          goObj("ContextMenuButton",
+            goObj(go.TextBlock, "Rename"),
+            { click: function(e, obj) { e.diagram.commandHandler.editTextBlock(); } },
+            new go.Binding("visible", "", function(o) { return o.diagram && o.diagram.commandHandler.canEditTextBlock(); }).ofObject()),
+          // add one for Editing...
+          goObj("ContextMenuButton",
+            goObj(go.TextBlock, "Delete"),
+            { click: function(e, obj) { e.diagram.commandHandler.deleteSelection(); } },
+            new go.Binding("visible", "", function(o) { return o.diagram && o.diagram.commandHandler.canDeleteSelection(); }).ofObject()),
+          goObj("ContextMenuButton",
+           		goObj(go.TextBlock, "Copy"), { click: function(e, obj) { e.diagram.commandHandler.copySelection(); } },
+                new go.Binding("visible", "", function(o) {
+                    return o.diagram.commandHandler.canCopySelection();
+                }).ofObject()
+            ),
+           goObj("ContextMenuButton",
+           		goObj(go.TextBlock, "Paste"), { click: function(e, obj) { e.diagram.commandHandler.pasteSelection(); } },
+                new go.Binding("visible", "", function(o) {
+                    return o.diagram.commandHandler.canPasteSelection();
+                }).ofObject()
+            )
+        );
+      myDiagram.nodeTemplateMap.add("Loading",
+        goObj(go.Node, "Spot",
+          { selectionAdorned: true, textEditable: false, locationObjectName: "BODY",selectionChanged: nodeSelectionChanged },
+          new go.Binding("location", "loc", go.Point.parse).makeTwoWay(go.Point.stringify),
+          // 正文由一个围绕文本的矩形组成。
+          goObj(
+       		  go.Panel, "Auto",
+              { name: "BODY" ,portId: "from",click: nodeBodyClick },
+              /* goObj(
+           		  go.Shape, "Rectangle",
+              	  { fill: graygrad, stroke: "gray", minSize: new go.Size(120, 21) },
+                  new go.Binding("fill", "isSelected", function(s) { return s ? "dodgerblue" : graygrad; }).ofObject()
+              ), */
+              goObj(go.Picture,
+               {
+                 name: "Picture",
+                 desiredSize: new go.Size(120, 35)
+               },
+               new go.Binding("source", "key", findHeadShot)),
+            goObj(go.TextBlock,
+              { stroke: "black", font: "14px sans-serif", editable: true,
+                margin: new go.Margin(3, 3+11, 3, 21), alignment: go.Spot.Left },
+              new go.Binding("text", "text"))
+          ),
+          // 增加按钮部分
+          goObj(go.Panel, "Auto",
+            { alignment: go.Spot.Right, portId: "from", fromLinkable: true, click: addNodeAndLink },
+            goObj(go.Shape, "Circle",
+              { width: 22, height: 22, fill: "white", stroke: "dodgerblue", strokeWidth: 3 }),
+            goObj(go.Shape, "PlusLine",
+              { width: 11, height: 11, fill: null, stroke: "dodgerblue", strokeWidth: 3 })
+          )
+        ));
+      myDiagram.nodeTemplateMap.add("End",
+        goObj(go.Node, "Spot",
+          { selectionAdorned: false, textEditable: true, locationObjectName: "BODY" },
+          new go.Binding("location", "loc", go.Point.parse).makeTwoWay(go.Point.stringify),
+          // the main body consists of a Rectangle surrounding the text
+          goObj(go.Panel, "Auto",
+            { name: "BODY" },
+            goObj(go.Shape, "Rectangle",
+              { fill: graygrad, stroke: "gray", minSize: new go.Size(120, 21) },
+              new go.Binding("fill", "isSelected", function(s) { return s ? "dodgerblue" : graygrad; }).ofObject()),
+            goObj(go.TextBlock,
+              { stroke: "black", font: "14px sans-serif", editable: true,
+                margin: new go.Margin(3, 3 + 11, 3, 3 + 4), alignment: go.Spot.Left },
+              new go.Binding("text", "text"))
+          ),
+          // input port
+          goObj(go.Panel, "Auto",
+            { alignment: go.Spot.Left, portId: "to", toLinkable: true },
+            goObj(go.Shape, "Circle",
+              { width: 8, height: 8, fill: "white", stroke: "gray" }),
+            goObj(go.Shape, "Circle",
+              { width: 4, height: 4, fill: "dodgerblue", stroke: null })
+          )
+        ));
+      // dropping a node on this special node will cause the selection to be deleted;
+      // linking or relinking to this special node will cause the link to be deleted
+      myDiagram.nodeTemplateMap.add("Recycle",
+        goObj(go.Node, "Auto",
+          { portId: "to", toLinkable: true, deletable: false,
+            layerName: "Background", locationSpot: go.Spot.Center },
+          new go.Binding("location", "loc", go.Point.parse).makeTwoWay(go.Point.stringify),
+          { dragComputation: function(node, pt, gridpt) { return pt; } },
+          { mouseDrop: function(e, obj) { myDiagram.commandHandler.deleteSelection(); } },
+          goObj(go.Shape,
+            { fill: "lightgray", stroke: "gray" }),
+          goObj(go.TextBlock, "Drop Here\nTo Delete",
+            { margin: 5, textAlign: "center" })
+        ));
+      //
+      function findHeadShot(key) {
+    	  var model = myDiagram.model;
+		  var propertyType = model.findNodeDataForKey(key).propertyType;
+		  if(key == "1"){
+			  return "/image/HS.png"
+		  }
+		  if(propertyType == 8 || propertyType == 2 || propertyType == 9 || propertyType == 10|| propertyType == 3){
+			  return "/image/HS3.png"
+		  }else{
+	          return "/image/HS" + propertyType + ".png"
+		  }
+      }	
+     	/* 
+     	*
+     	添加节点的点击事件
+     	*
+     	*/
+     function addNodeAndLink(e, obj) {
+        var fromNode = obj.part;
+        var diagram = fromNode.diagram;
+        diagram.startTransaction("Add State");
+        // 获取用户点击按钮的节点数据
+        var fromData = fromNode.data;
+        console.log("打印fromData")
+        console.log(fromData)
+        // 创建一个新的“State”数据对象，位于fromNode 
+        var p = fromNode.location.copy();
+        p.x += diagram.toolManager.draggingTool.gridSnapCellSize.width;
+        // 将新节点数据添加到模型
+        var model = diagram.model;
+        if(fromData.propertyType == "0" || fromData.propertyType == "1"){
+        	var toData = {
+      	        text: "选项",
+      	        loc: go.Point.stringify(p),
+      	        propertyType : "3"
+      	    };
+        	model.addNodeData(toData);
+      	}else if(fromData.propertyType == "2"){
+ 	      	for(var i = 0;i < 2;i++){
+      			if(i == 0){
+      				var toData = {
+      	 	      	        text: "是",
+      	 	      	        loc: go.Point.stringify(p),
+      	 	      	        propertyType : "3"
+      	 	      	    };
+      			}else{
+      				var toData = 	{
+     	 	      	        text: "否",
+     	 	      	        loc: go.Point.stringify(p),
+     	 	      	        propertyType : "3"
+     	 	      	    }
+          		}
+      			model.addNodeData(toData);
+  				// 从旧节点数据创建链接数据到新节点数据
+     	        var linkdata = {
+     	          from: model.getKeyForNodeData(fromData),
+     	          to: model.getKeyForNodeData(toData)
+     	        };
+     	        // 并将链接数据添加到模型中
+     	        //----无需刷新添加数据   ---
+     	        model.addLinkData(linkdata);
+     	        // 选中新增加的节点
+     	        var newnode = diagram.findNodeForData(toData);
+     	        diagram.select(newnode);
+     	        $("#selectNodeKey").val(toData.key)
+     	        /* getNodeInfo(toData.text,"") */
+     	        // 将新节点捕捉到有效位置
+     	        newnode.location = diagram.toolManager.draggingTool.computeMove(newnode, p);
+     	        // then 然后考虑任何重叠
+     	        shiftNodesToEmptySpaces();
+     	        diagram.commitTransaction("Add State");
+     	        nodeBodyClick("",newnode)
+ 	      	}	
+ 	      	return
+       	}else if(fromData.propertyType == "4"){
+       		var selectNodeKey = document.getElementById("selectNodeKey").value;
+			var stepData = model.findNodeDataForKey(selectNodeKey).stepData;
+			if(!stepData){
+				for(var i = 0;i < 2;i++){
+	      			if(i == 0){
+	      				var toData = {
+	      	 	      	        text: "是",
+	      	 	      	        loc: go.Point.stringify(p),
+	      	 	      	        propertyType : "3"
+	      	 	      	    };
+	      			}else{
+	      				var toData = 	{
+	     	 	      	        text: "否",
+	     	 	      	        loc: go.Point.stringify(p),
+	     	 	      	        propertyType : "3"
+	     	 	      	    }
+	          		}
+	      			model.addNodeData(toData);
+	  				// 从旧节点数据创建链接数据到新节点数据
+	     	        var linkdata = {
+	     	          from: model.getKeyForNodeData(fromData),
+	     	          to: model.getKeyForNodeData(toData)
+	     	        };
+	     	        // 并将链接数据添加到模型中
+	     	        //----无需刷新添加数据   ---
+	     	        model.addLinkData(linkdata);
+	     	        // 选中新增加的节点
+	     	        var newnode = diagram.findNodeForData(toData);
+	     	        diagram.select(newnode);
+	     	        $("#selectNodeKey").val(toData.key)
+	     	        /* getNodeInfo(toData.text,"") */
+	     	        // 将新节点捕捉到有效位置
+	     	        newnode.location = diagram.toolManager.draggingTool.computeMove(newnode, p);
+	     	        // then 然后考虑任何重叠
+	     	        shiftNodesToEmptySpaces();
+	     	        diagram.commitTransaction("Add State");
+	     	        nodeBodyClick("",newnode)
+	 	      	}	
+			}else{
+	 	      	for(var i = 0;i < stepData.length;i++){
+	 	      		var toData = 	{
+	 	 	      	        text: stepData[i].childData.contant,
+	 	 	      	        loc: go.Point.stringify(p),
+	 	 	      	        propertyType : "3"
+	 	 	      	    }
+	 	      		model.addNodeData(toData);
+	  				// 从旧节点数据创建链接数据到新节点数据
+	     	        var linkdata = {
+	     	          from: model.getKeyForNodeData(fromData),
+	     	          to: model.getKeyForNodeData(toData)
+	     	        };
+	     	        // 并将链接数据添加到模型中
+	     	        //----无需刷新添加数据   ---
+	     	        model.addLinkData(linkdata);
+	     	        // 选中新增加的节点
+	     	        var newnode = diagram.findNodeForData(toData);
+	     	        diagram.select(newnode);
+	     	        $("#selectNodeKey").val(toData.key)
+	     	        /* getNodeInfo(toData.text,"") */
+	     	        // 将新节点捕捉到有效位置
+	     	        newnode.location = diagram.toolManager.draggingTool.computeMove(newnode, p);
+	     	        // then 然后考虑任何重叠
+	     	        shiftNodesToEmptySpaces();
+	     	        diagram.commitTransaction("Add State");
+	     	        nodeBodyClick("",newnode)
+	 	      	}	
+			}
+ 	      	return
+       	}else{
+      		var toData = {
+   	      	        text: "单选",
+   	      	        loc: go.Point.stringify(p),
+   	      	        propertyType : "0"
+   	      	    };
+      		model.addNodeData(toData);
+       	}
+        layui.use(['element', 'form', 'jquery'], function() {
+    		var $ = layui.jquery;form = layui.form(),element = layui.element();
+    		
+      	    document.getElementById("nodeName").value = toData.text;
+      	    document.getElementById("propertyType").value = toData.propertyType;
+      	    if(toData.propertyType == "3"){
+      	    	$("#add").show()
+      	    }else{
+      	    	$("#add").hide()
+      	    }
+      	    form.render()
+        })
+        // 从旧节点数据创建链接数据到新节点数据
+        var linkdata = {
+          from: model.getKeyForNodeData(fromData),
+          to: model.getKeyForNodeData(toData)
+        };
+        // 并将链接数据添加到模型中
+        //----无需刷新添加数据   ---
+        model.addLinkData(linkdata);
+        // 选中新增加的节点
+        var newnode = diagram.findNodeForData(toData);
+        diagram.select(newnode);
+        $("#selectNodeKey").val(toData.key)
+        /* getNodeInfo(toData.text,"") */
+        // 将新节点捕捉到有效位置
+        newnode.location = diagram.toolManager.draggingTool.computeMove(newnode, p);
+        // then 然后考虑任何重叠
+        shiftNodesToEmptySpaces();
+        diagram.commitTransaction("Add State");
+        nodeBodyClick("",newnode)
+    }
+     	function nodeSelectionChanged(node){
+     		var curNode = node;
+      	    var linkNodes = curNode.findNodesConnected();
+      	    if(curNode.isSelected){
+  	    	    curNode.findLinksInto().each(function(item){
+  	    		    item.isHighlighted = true; 
+  	    	    })
+      	    }else{
+      		    curNode.findLinksInto().each(function(item){
+  	    		    item.isHighlighted = false; 
+  	    	    })
+      	    }
+     		return
+     		var diagram = node.diagram;
+     	    if (diagram === null) return;
+     	    diagram.clearHighlighteds();
+     	    var begin = diagram.selection.first();
+     	    var end = node;
+     	    /* highlightShortestPath(begin, end); */
+     	}
+     	function highlightShortestPath(begin, end) {
+     		var path = new go.List();
+     	    path.add(end);
+     	    path.add(begin);
+     	    highlightPath(path);
+   	    }
+     	function highlightPath(path) {
+     	    myDiagram.clearHighlighteds();
+     	    for (var i = 0; i < path.count - 1; i++) {
+     	        var f = path.o[i];
+     	        var t = path.o[i + 1];
+     	        f.findLinksTo(t).each(function(l) { 
+     	        	l.isHighlighted = true; 
+   	        	});
+     	    }
+    	}
+      /*
+      *
+     	 ----------------主体body的点击事件------------------
+   	  *
+      */
+      function nodeBodyClick(e, obj){
+    	  var Select_Port =obj.part.data;
+    	  var key = Select_Port.key;
+
+    	  /* debugger
+    	  while(linkNodes.next()){
+    		  highlightShortestPath(linkNodes.value,curNode)
+    	  } */
+
+    	  getNodeInfo(obj);
+      }
+      // Highlight ports when they are targets for linking or relinking.
+      var OldTarget = null;  // remember the last highlit port
+      function highlight(port) {
+        if (OldTarget !== port) {
+          lowlight();  // remove highlight from any old port
+          OldTarget = port;
+          port.scale = 1.3;  // highlight by enlarging
+        }
+      }
+      function lowlight() {  // remove any highlight
+        if (OldTarget) {
+          OldTarget.scale = 1.0;
+          OldTarget = null;
+        }
+      }
+      // Connecting a link with the Recycle node removes the link
+      myDiagram.addDiagramListener("LinkDrawn", function(e) {
+        var link = e.subject;
+        if (link.toNode.category === "Recycle") myDiagram.remove(link);
+        lowlight();
+      });
+      myDiagram.addDiagramListener("LinkRelinked", function(e) {
+        var link = e.subject;
+        if (link.toNode.category === "Recycle") myDiagram.remove(link);
+        lowlight();
+      });
+      myDiagram.linkTemplate =
+        goObj(go.Link,
+          { selectionAdorned: false, fromPortId: "from", toPortId: "to", relinkableTo: true },
+          goObj(go.Shape,  // this shape only shows when it isHighlighted
+             { isPanelMain: true, stroke: null, strokeWidth: 4 },
+             new go.Binding("stroke", "isHighlighted", function(h) { return h ? "dodgerblue" : null; }).ofObject()),
+          goObj(go.Shape,
+             // mark each Shape to get the link geometry with isPanelMain: true
+             { isPanelMain: true, stroke: "black", strokeWidth: 1 },
+             new go.Binding("stroke", "color"))
+        );
+      function commonLinkingToolInit(tool) {
+        // the temporary link drawn during a link drawing operation (LinkingTool) is thick and blue
+        tool.temporaryLink =
+            goObj(go.Link, { layerName: "Tool" },
+              goObj(go.Shape, { stroke: "dodgerblue", strokeWidth: 5 }));
+        // change the standard proposed ports feedback from blue rectangles to transparent circles
+        tool.temporaryFromPort.figure = "Circle";
+        tool.temporaryFromPort.stroke = null;
+        tool.temporaryFromPort.strokeWidth = 0;
+        tool.temporaryToPort.figure = "Circle";
+        tool.temporaryToPort.stroke = null;
+        tool.temporaryToPort.strokeWidth = 0;
+        // provide customized visual feedback as ports are targeted or not
+        tool.portTargeted = function(realnode, realport, tempnode, tempport, toend) {
+          if (realport === null) {  // no valid port nearby
+            lowlight();
+          } else if (toend) {
+            highlight(realport);
+          }
+        };
+      }
+      var ltool = myDiagram.toolManager.linkingTool;
+      commonLinkingToolInit(ltool);
+      // do not allow links to be drawn starting at the "to" port
+      ltool.direction = go.LinkingTool.ForwardsOnly;
+      var rtool = myDiagram.toolManager.relinkingTool;
+      commonLinkingToolInit(rtool);
+      // change the standard relink handle to be a shape that takes the shape of the link
+      rtool.toHandleArchetype =
+        goObj(go.Shape,
+          { isPanelMain: true, fill: null, stroke: "dodgerblue", strokeWidth: 5 });
+      // use a special DraggingTool to cause the dragging of a Link to start relinking it
+      myDiagram.toolManager.draggingTool = new DragLinkingTool();
+      // detect when dropped onto an occupied cell
+      myDiagram.addDiagramListener("SelectionMoved", shiftNodesToEmptySpaces);
+      function shiftNodesToEmptySpaces() {
+        myDiagram.selection.each(function(node) {
+          if (!(node instanceof go.Node)) return;
+          // look for Parts overlapping the node
+          while (true) {
+            var exist = myDiagram.findObjectsIn(node.actualBounds,
+               // only consider Parts
+               function(obj) { return obj.part; },
+               // ignore Links and the dropped node itself
+               function(part) { return part instanceof go.Node && part !== node; },
+               // check for any overlap, not complete containment
+               true).first();
+            if (exist === null) break;
+            // try shifting down beyond the existing node to see if there's empty space
+            node.position = new go.Point(node.actualBounds.x, exist.actualBounds.bottom+10);
+          }
+        });
+      }
+      // prevent nodes from being dragged to the left of where the layout placed them
+      myDiagram.addDiagramListener("LayoutCompleted", function(e) {
+        myDiagram.nodes.each(function(node) {
+          if (node.category === "Recycle") return;
+          node.minLocation = new go.Point(node.location.x, -Infinity);
+        });
+      });
+      /* myDiagram.addDiagramListener("ChangedSelection", function() {
+    	  alert()
+      }) */
+      //画布空白即背景点击事件
+      /* myDiagram.addDiagramListener("BackgroundSingleClicked", function(e) {
+    	  layui.use(['element', 'form'], function() {
+   			var form = layui.form(),element = layui.element();
+	    	  $("#nodeName").val("")
+	    	  $("#selectNodeKey").val("")
+	    	  
+	    	  $("#propertyType").val("")
+	    	  $("#dataList").html("")
+	    	  $(".dataHandle").hide()
+   			  form.render()
+   		  });
+      }); */
+      load();  // load initial diagram from the mySavedModel textarea
+      layout();
+    }
+    function getNodeInfo(obj){
+    	layui.use(['element', 'form', 'layer', 'jquery'], function() {
+    		var $ = layui.jquery,form = layui.form(),element = layui.element();
+    		var workFlowId = window.utils.getRequestParam("id");
+    		var Select_Port =obj.part.data;//当前点击的node
+    		var newPort = obj;
+    		var nodeName_port = Select_Port.text;
+    		var propertyType = Select_Port.propertyType;
+    		
+      	    document.getElementById("nodeName").value = Select_Port.text;
+      	    document.getElementById("propertyType").value = Select_Port.propertyType;
+      	    console.log('打印Select_Port')
+      	    console.log(Select_Port);
+      	    //添加模块
+      	    $("#addMoudule").click(function(){
+	          	if(!$("#selectNodeKey").val()){
+	          		layer.msg("请先选择要插入模块的节点",{zIndex:layer.index})
+	          	}else{
+	          		var moduleId = $("#judgeModule").val();
+	      	    	if(moduleId == "all"){
+	      	    		layer.msg("请先选择模块！");
+	      	    		return;
+	      	    	}
+	      	    	//根据模快id查询模块
+	      	    	$.ajax({
+						url:'/procedure/module/getOne?id='+moduleId,
+				        type:'GET',
+				        success : function(data){
+				        	if(data.successful){
+				        		var moduleName = data.data.name;
+				        		var judgeModule = data.data.content;
+				      	    	var contentArr = judgeModule.split("-");
+				      	    	
+				      	    	/********** 添加模块 ***********/
+				      	    	var fromNode = obj.part;
+				      	        var diagram = fromNode.diagram;
+				      	        diagram.startTransaction("Add State");
+				      	        // 获取用户点击按钮的节点数据
+				      	        var fromData = fromNode.data;
+				      	        // 创建一个新的“State”数据对象，位于fromNode 
+				      	        var p = fromNode.location.copy();
+				      	        p.x += diagram.toolManager.draggingTool.gridSnapCellSize.width;
+				      	        // 将新节点数据添加到模型
+				      	        var model = diagram.model;
+				      	        var nameToData = {
+			            	        text: moduleName,
+			            	        loc: go.Point.stringify(p),
+			            	        propertyType : "5",
+			            	        stepData: [{
+			            	        	'childData':{inputType: "0", compare: "0", needInput: "0", tips: "", expression: "",contant: moduleName},
+			            	        	'id':"",
+			            	        	'name':""
+			            	        }]
+			            	    };
+				              	model.addNodeData(nameToData);
+				              	var linkdata = {
+			           	            from: model.getKeyForNodeData(fromData),
+			           	            to: model.getKeyForNodeData(nameToData)
+			           	        };
+				              	model.addLinkData(linkdata);
+				              	// 选中新增加的节点
+				     	        var newnode_name = diagram.findNodeForData(nameToData);
+				     	        // 将新节点捕捉到有效位置
+				     	        newnode_name.location = diagram.toolManager.draggingTool.computeMove(newnode_name, p);
+				     	        // then 然后考虑任何重叠
+				     	        diagram.commitTransaction("Add State");
+				     	        
+				     	        
+				     	        var newPanduanArr = [];
+				      	    	for(var i =0; i<contentArr.length;i++){
+				      	    		var newObj = new Object();
+				      	    		newObj.childData = new Object();
+				      	    		newObj.name = "条件"+(i+1);
+				      	    		newObj.childData.compare = JSON.parse(contentArr[i]).biaozhun;
+				      	    		newObj.childData.contant = JSON.parse(contentArr[i]).jielun;
+				      	    		newObj.childData.overallScale = '';
+				      	    		newObj.childData.expression = JSON.parse(contentArr[i]).val;
+				      	    		newPanduanArr.push(newObj)
+				      	    	}
+				      	    	/* 添加数据判断 */
+				      	    	diagram.startTransaction("Add State");
+				      	        // 获取用户点击按钮的节点数据
+				      	        var fromData_name = diagram.findNodeForData(nameToData).data;
+				      	        // 创建一个新的“State”数据对象，位于fromNode 
+				      	        var p = diagram.findNodeForData(nameToData).location.copy();
+				      	        p.x += diagram.toolManager.draggingTool.gridSnapCellSize.width;
+				      	        // 将新节点数据添加到模型
+				      	        var panduanToData = {
+			            	        text: "数据判断",
+			            	        loc: go.Point.stringify(p),
+			            	        propertyType : "4",
+			            	        stepData: newPanduanArr
+			            	    };
+				              	model.addNodeData(panduanToData);
+				              	var panduanLinkdata = {
+			           	            from: model.getKeyForNodeData(fromData_name),
+			           	            to: model.getKeyForNodeData(panduanToData)
+			           	        };
+				              	model.addLinkData(panduanLinkdata);
+				              	// 选中新增加的节点
+				     	        var newnode_panduan = diagram.findNodeForData(panduanToData);
+				     	        // 将新节点捕捉到有效位置
+				     	        newnode_panduan.location = diagram.toolManager.draggingTool.computeMove(newnode_panduan, p);
+				     	        // then 然后考虑任何重叠
+				     	        diagram.commitTransaction("Add State");
+				     	        
+				      	    	/************** 添加消息设置 **************/
+				      	    	diagram.startTransaction("Add State");
+				      	        // 获取用户点击按钮的节点数据
+				      	        var fromData_message = diagram.findNodeForData(panduanToData).data;
+				      	        // 创建一个新的“State”数据对象，位于fromNode 
+				      	    	for(var j=0;j<contentArr.length;j++){
+					      	        var p = diagram.findNodeForData(panduanToData).location.copy();
+					      	        p.x += diagram.toolManager.draggingTool.gridSnapCellSize.width;
+					      	        // 将新节点数据添加到模型
+					      	        var tuisongToData = {
+				            	        text: JSON.parse(contentArr[j]).jielun,
+				            	        loc: go.Point.stringify(p),
+				            	        propertyType : "6",
+				            	        stepData: [{
+				            	        	'childData':{contant: JSON.parse(contentArr[j]).jielun, overallScale: ""},
+				            	        	'name':"消息设置"+(j+1)
+				            	        }]
+				            	    };
+					              	model.addNodeData(tuisongToData);
+					              	var tuisongLinkdata = {
+				           	            from: model.getKeyForNodeData(panduanToData),
+				           	            to: model.getKeyForNodeData(tuisongToData)
+				           	        };
+					              	model.addLinkData(tuisongLinkdata);
+					              	// 选中新增加的节点
+					     	        var newnode_message = diagram.findNodeForData(tuisongToData);
+					     	        // 将新节点捕捉到有效位置
+					     	        newnode_message.location = diagram.toolManager.draggingTool.computeMove(newnode_message, p);
+				      	    	}
+				     	        // then 然后考虑任何重叠
+				     	        shiftNodesToEmptySpaces();
+				     	        diagram.commitTransaction("Add State");
+				     	        
+				     	        function shiftNodesToEmptySpaces() {
+					     	        myDiagram.selection.each(function(node) {
+					     	            if (!(node instanceof go.Node)) return;
+					     	            // look for Parts overlapping the node
+					     	            while (true) {
+					     	                 var exist = myDiagram.findObjectsIn(node.actualBounds,
+					     	                 	function(obj) { return obj.part; },
+					     	                 	function(part) { return part instanceof go.Node && part !== node; },
+					     	                 	true).first();
+					     	                 if (exist === null) break;
+					     	                 node.position = new go.Point(node.actualBounds.x, exist.actualBounds.bottom+10);
+					     	            }
+					     	        });
+				     	        }
+				        	}
+				        },
+				        error : function(data){
+				        }
+					})
+	      	    	var key = $("#selectNodeKey").val();
+	          	}
+  	        })
+      	    $("#contant").val("")
+      	    $("button.layui-btn").off("click")
+      	    $("#selectNodeKey").val(Select_Port.key);
+      	    if(Select_Port.key != "1"){
+      	    	if(propertyType){
+            		$("#propertyType").val(propertyType)
+            	}else{
+            		$("#propertyType").val("0");
+            		$("#add").hide();
+    	  	  		$("#delete").hide();
+    	  	  		$("#addMsg").hide();
+    	  	  		$("#deleteMsg").hide();
+    	  	  		$("#addPushMsg").hide();
+    	  			form.render();
+            		return;
+            	}
+      	    }
+  		    form.render();
+    		$("#nodeName").blur(function(){
+    			  var nodeName = $(this).val();
+    			  var selectNodeKey = $("#selectNodeKey").val()
+    			  var model = JSON.parse(myDiagram.model.toJson())
+    			  /* var model = myDiagram.model; */
+    			  /* model.findNodeDataForKey(selectNodeKey).stepData[stepIndex].childData */
+    			  if(nodeName){
+    				  for(var i = 0;i < model.nodeDataArray.length;i++){
+    					  if(model.nodeDataArray[i].key == selectNodeKey){
+    						  model.nodeDataArray[i].text = nodeName;
+    						  if(model.nodeDataArray[i].stepData){
+    							  if($(".checkedP").length > 0){
+	    							  var index = $(".checkedP").index();
+	    							  if(index){
+		    							  var item = model.nodeDataArray[i].stepData[index];
+		   								  if(item.childData){
+		   									  item.childData.contant = nodeName;
+		   								  }
+	    							  }
+	    							  if(!$("#contant").val()){
+		 							      $("#contant").val(nodeName)
+	    							  }
+    							  }
+    						  }
+    						  myDiagram.model = go.Model.fromJson(JSON.stringify(model));
+    						  //根据节点类型 改变节点样式
+    					  }
+    				  }
+    			  }
+    		});
+    		form.on('select(propertyType)', function(data){
+    			 var propertyType = data.value;
+    			 var nodeName = getDataById(propertyType);
+    			 document.getElementById("nodeName").value = nodeName;
+    			 var selectNodeKey = $("#selectNodeKey").val()
+    			 var model = JSON.parse(myDiagram.model.toJson())
+    			 console.log(selectNodeKey)
+    			 console.log(model.nodeDataArray)
+    			 if(selectNodeKey){
+    				 for(var i = 0;i < model.nodeDataArray.length;i++){
+    					  if(model.nodeDataArray[i].key == selectNodeKey){
+    						  model.nodeDataArray[i].propertyType = propertyType
+    						  model.nodeDataArray[i].text = nodeName;
+    						  if(model.nodeDataArray[i].stepData){
+   			    				 delete model.nodeDataArray[i].stepData
+   			    			  }
+    						  myDiagram.model = go.Model.fromJson(JSON.stringify(model));
+    						  //根据节点类型 改变节点样式
+    					  }
+    				  }
+    			 }
+    		});
+    		function getDataById(id){
+    			var data = ""
+    			switch(id){
+    			case'0':
+    				data = '单选'
+    				break;
+    			case'1':
+    				data = '多选'
+    				break;
+    			case'2':
+    				data = '路径执行'
+    				break;
+    			case'3':
+    				data = '选项'
+    				break;
+    			case'4':
+    				data = '数据判断'
+    				break;
+    			case'5':
+    				data = '用户输入'
+    				break;
+    			case'6':
+    				data = '消息设置'
+    				break;
+    			case'7':
+    				data = '消息推送'
+    				break;
+    			case'8':
+    				data = '日历选择'
+    				break;
+    			case'9':
+    				data = '多选执行'
+    				break;
+    			case'10':
+    				data = '多选结束'
+    				break;
+    			}
+    			return data
+    		}
+    		$("#creatPhr").on("click",function(){
+    			var scale = $("#scaleList").val();
+    			var scaleText = $("#scaleList").next(".layui-form-select").find("input")[0].value;
+    			if(!scale){
+    				layer.msg("请先选择变量！",{zIndex:layer.index})
+    			}else{
+    				var scaleInput = $("input[name='scale']")
+    				for(var i =0;i < scaleInput.length;i++){
+    					if(scaleInput.eq(i).attr("data-id") == scale){
+    						layer.msg("已存在此变量！",{zIndex:layer.zIndex})
+    						return ;
+    					}
+    				}
+    				$("#scaleCheckbox").append('<input type="radio" data-id="'+scale+'" name="scale" title="'+scaleText+'">');
+    				$("#overallScale").append('<option value="'+scale+'">'+scaleText+'</option>')
+    				form.render()
+    			}
+    		})
+    		$("#deletePhr").on("click",function(){
+    			var scaleCheckbox = $("input[name='scale']");
+    			scaleCheckbox.each(function(){
+    				if($(this).next(".layui-form-checkbox").attr("class").indexOf("layui-form-checked") >= 0){
+    					$(this).next(".layui-form-checkbox").remove()
+    					$(this).remove()
+    				}
+    			})
+    			form.render()
+    		})
+    		/* ------------按钮点击事件--------------- */
+    		$("#addMsg").on("click",function(){
+    			var plength = $("#dataList .xiaoxishezhi").length + 1;
+    			$("#dataList").append('<p class="stepDataInput xiaoxishezhi" data-id="">消息设置'+plength+'</p>');
+    			bind();
+    		})
+    		$("#deleteMsg").on("click",function(){
+    			var pindex = $("#dataList .xiaoxishezhi").length - 1;
+    			if(pindex < 1){
+    				return;
+    			}
+    			$("#dataList .xiaoxishezhi").eq(pindex).remove();
+    			var model = myDiagram.model;
+    			var stepData = model.findNodeDataForKey(selectNodeKey).stepData;
+    			var propertyType = document.getElementById("propertyType").value;
+    			stepData.splice(pindex,pindex);
+    		})
+    		$("#addTj").on("click",function(){
+    			var pindex = $("#dataList .tiaojian").length + 1;
+    			var html = '<p class="stepDataInput tiaojian" data-id="">条件'+pindex+'</p>'
+    			$(html).insertBefore($("#dataList .quesheng"))
+    			bind();
+    		})
+    	    $("#deleteTj").on("click",function(){
+    	    	var pindex = $("#dataList .tiaojian").length;
+    	    	if(pindex <= 2){
+    	    		return;
+    	    	};
+    	    	var index = $("#dataList .quesheng").prev(".tiaojian").index();
+    			var model = myDiagram.model;
+    			var stepData = model.findNodeDataForKey(selectNodeKey).stepData;
+    	    	var propertyType = document.getElementById("propertyType").value;
+    	    	stepData.splice(index,index);
+    	    	$("#dataList .quesheng").prev(".tiaojian").remove()
+    		});
+    		function getData(){
+    	   		var workflowList = new Object();
+    	   		var managerId = localStorage.getItem('managerId');
+    			var obj={title:"",managerId:managerId,showCount:1000,currentPage:1};
+    			$.ajax({
+    		    	url:'/procedure/getPageProcedures',
+    		    	type:'POST',
+    	            data: $.toJSON(obj),
+    	            async: false,
+    	            dataType:'json',
+    	            contentType: "application/json",
+    	            success : function(data){
+    	           		workflowList = data.items
+    	            },
+    		        error : function(data){
+    		        	layer.close(layer.index);//取消遮罩
+    		        	layer.msg('加载失败！');
+    		        }
+    		    });
+    			return workflowList;
+    	   	}
+    		$("#addPushMsg").click(function(){
+    			layer.open({
+    				title:'添加推动消息',
+    	            type: 1,
+    	            area: ['650px', '650px'],//宽高
+    	            shade: 0.8,
+    	            btn:['确定'],
+    	            content: $('#messagePush_add'),
+    	            success: function(index){
+    	            	//触发事件
+    	            	var workflowList_loc = getData();
+    	            	var optionStr = '<option value="all">请选择</option>';
+    	            	$.each(workflowList_loc,function(index,item){
+    	            		optionStr += '<option value="'+item.id+'">'+item.title+'</option>'
+		        		})
+    	            	var active = {
+    	            	    tabAdd: function(){
+    	            	      	//新增一个Tab项
+    	            	      	var index = $("#changjing li").length + 1;
+    	            	      	element.tabAdd('demo', {
+    	            		        title: '场景'+ index 
+    	            		        ,content: 
+   	            		        	'<div class="layui-form-item">'+
+    	        			    		'<label class="layui-form-label">推送频率：</label>'+
+    	        						'<div class="layui-input-block">'+
+    	        							'<input type="text" id="" value="1" autocomplete="off" class="layui-input pushPinlv" placeholder="计算方法：推送时长 ÷次数" />'+
+    	        			    		'</div>'+
+    	        			    	'</div>'+
+    	        			    	'<div class="layui-form-item">'+
+    	        			    		'<label class="layui-form-label">推送时间：</label>'+
+    	        						'<div class="layui-input-block">'+
+    	        							'<input type="text" id="" autocomplete="off" class="layui-input pushTime" placeholder="请输入时间，例：14:30">'+
+    	        			    		'</div>'+
+    	        			    	'</div>'+
+    	        			    	'<div class="layui-form-item">'+
+    	        			    		'<label class="layui-form-label">推送内容：</label>'+
+    	        						'<div class="layui-input-block">'+
+    	        							'<textarea type="text" id="" value="1" autocomplete="off" class="layui-textarea pushContant"></textarea>'+
+    	        			    		'</div>'+
+    	        			    	'</div>'+
+    	        			    	'<div class="layui-form-item">'+
+    	        			    		'<label class="layui-form-label">推送流程：</label>'+
+    	        						'<div class="layui-input-block">'+
+    	        							'<select lay-verify="required" class="workflowList" lay-search="">'+
+    	        								optionStr+
+    	        				    		'</select>'+
+    	        			    		'</div>'+
+    	        			    	'</div>'
+    	            		        ,id: new Date().getTime() //实际使用一般是规定好的id，这里以时间戳模拟下
+    	            	      	})
+    	            	    }
+    	            	};
+    	            	$('.site-demo-active').on('click', function(){
+    	            	    var othis = $(this), type = othis.data('type');
+    	            	    active[type] ? active[type].call(this, othis) : '';
+    	            	    form.render()
+    	                });
+    	            	var selectNodeKey = $("#selectNodeKey").val();
+    	            	var model = myDiagram.model;
+    	            	var pushData ="";
+    	            	if(model.findNodeDataForKey(selectNodeKey).stepData){
+    	            		if(model.findNodeDataForKey(selectNodeKey).stepData[0].pushMethod){
+	    	            		pushData = model.findNodeDataForKey(selectNodeKey).stepData[0];
+    	            		}
+    	            	}
+    	            	
+    	            	if(!!pushData){
+	        				var scene = pushData.scene
+    	            		if($("#changjing li").length<=1){
+		        				$("#pushMethod").val(pushData.pushMethod);
+		        				$("#pushDataLength").val(pushData.pushDataLength);
+		        				for(var i =0;i < scene.length - 1;i++){
+		        					$('.site-demo-active').click();
+		        				}
+        	            	}
+	        				for(var j =0;j < scene.length;j++){
+	        					var pushPinlv = scene[j].pushPinlv;
+	        					var pushTime = scene[j].pushTime;
+	        					var pushContant = scene[j].pushContant;
+	        					var workflowList = scene[j].workflowList;
+	        					$("#messagePush_add .layui-tab .layui-tab-content .layui-tab-item").eq(j).find(".pushPinlv").val(pushPinlv)
+	        					$("#messagePush_add .layui-tab .layui-tab-content .layui-tab-item").eq(j).find(".pushTime").val(pushTime)
+	        					$("#messagePush_add .layui-tab .layui-tab-content .layui-tab-item").eq(j).find(".pushContant").val(pushContant)
+	        					$("#messagePush_add .layui-tab .layui-tab-content .layui-tab-item").eq(j).find(".workflowList").val(workflowList)
+	        				}
+	        				form.render();
+    	            	}
+    	            },
+    	            yes: function(index, layero){
+    	            	var pushMethod = $("#pushMethod").val();
+    	            	var pushDataLength = $("#pushDataLength").val();
+    	            	if(!pushDataLength){
+    	            		layer.msg("请填写推送时长",{zIndex: layer.index});
+    	            		return;
+    	            	}
+    	            	var scene = [];
+    	            	$("#messagePush_add .layui-tab .layui-tab-content .layui-tab-item").each(function(){
+    	            		var pushPinlv = $(this).find(".pushPinlv").val();
+        	            	var pushTime = $(this).find(".pushTime").val();
+        	            	var pushContant = $(this).find(".pushContant").val();
+        	            	var workflowList = $(this).find(".workflowList").val() =="all"?"":$(this).find(".workflowList").val();
+        	            	var index = $(this).index() + 1;
+        	            	if(!pushTime){
+        	            		layer.msg("请填写场景"+index+"的推送时间",{zIndex: layer.index});
+        	            		return;
+        	            	}
+        	            	if(!pushContant){
+        	            		layer.msg("请填写场景"+index+"的推送内容",{zIndex: layer.index});
+        	            		return;
+        	            	}
+    	            		var message = {"pushPinlv": pushPinlv,"pushTime": pushTime,"pushContant": pushContant,"workflowList": workflowList}
+    	            		scene.push(message)
+    	            	})
+    	            	
+    	            	
+    	            	var data = {"pushMethod":pushMethod,"pushDataLength":pushDataLength,"scene":scene}
+    	            	var selectNodeKey = $("#selectNodeKey").val();
+    	            	var model = myDiagram.model;
+        				model.findNodeDataForKey(selectNodeKey).stepData = [data];
+        				layer.close(index)
+    	            }
+    			})
+    		});
+    		$("#add").click(function(){
+    			addScale()
+    		});
+    		$("#addLjtj").click(function(){
+    			addScale()
+    		});
+    	    function addScale(){
+    	    	$("#scaleCheckbox input[type='checkbox']").removeAttr('checked');
+    			layer.open({
+    				title:'新增变量信息',
+    	            type: 1,
+    	            area: ['650px', '450px'],//宽高
+    	            shade: 0.8,
+    	            btn:['确定'],
+    	            content: $('#tipForm_add'),
+    	            success: function(){
+    	            	$("#fatherScale,#scaleList").val("");
+    	            },
+    	            yes: function(index, layero){
+    	            	var scaleCheckbox = $("input[name='scale']");
+    	            	var html = "";
+    	            	var haveChoose = false
+    	            	var model = JSON.parse(myDiagram.model.toJson())
+    	        		scaleCheckbox.each(function(index){
+    	        			if($(this).next(".layui-form-radio").attr("class").indexOf("layui-form-radioed") >= 0){
+    	        				haveChoose = true
+    	        				var name = $(this).attr("title")
+    	        				var dataId = $(this).attr("data-id")
+    	        				html += '<p class="stepDataInput" data-id="'+dataId+'">'+name+'</p>'
+    	        				var stepDataJson = {"id":$(this).attr("data-id"),"name":$(this).attr("title")}
+    	           				var selectNodeKey = $("#selectNodeKey").val()
+    	    	       			if(selectNodeKey){
+    	    	       				for(var i = 0;i < model.nodeDataArray.length;i++){
+    	    	       					 if(model.nodeDataArray[i].key == selectNodeKey){
+    	   	       							 model.nodeDataArray[i].stepData =[]
+    	    	       						 model.nodeDataArray[i].stepData.push(stepDataJson)
+    	    	       						 myDiagram.model = go.Model.fromJson(JSON.stringify(model));
+    	    	       						 //根据节点类型 改变节点样式
+    	    	       					 }
+    	    	       				 }
+    	    	       			 }
+    	       				}
+    	        		})
+    	       			if(!haveChoose){
+    	       				layer.msg("请选择变量！",{zIndex:layer.index});
+    	       				return false;
+    	       			}
+    	   				$("#dataList").html(html)
+    	   				bind(model)
+    	        		form.render()
+    	                layer.close(index); //如果设定了yes回调，需进行手工关闭
+    	            }
+    			})
+    		}
+    	    //数据操作的点击事件 把数据存入node中
+    		function bind(){
+    			/* if(!stepIndex){
+    				layer.msg("请先选择步骤！"); return
+    			} */
+    			$(".stepDataInput").off("click")
+    			$(".stepDataInput").click(function(){
+    				var model = myDiagram.model;
+    				var selectNodeKey = $("#selectNodeKey").val();
+    				var nodeName = $(this).text();
+    				$(".stepDataInput").removeClass("checkedP");
+    				$(this).addClass("checkedP");
+    				/* $(".dataHandle").show() */
+    				/* var model = JSON.parse(myDiagram.model.toJson()) */
+    				
+    				stepIndex = $(this).index();
+    				
+    				var propertyType = model.findNodeDataForKey(selectNodeKey).propertyType;
+    				$(".type"+propertyType).show();
+    				if(!model.findNodeDataForKey(selectNodeKey).stepData){
+    					model.findNodeDataForKey(selectNodeKey).stepData = []
+	    				for(var i =0;i < $("#dataList p").length;i++){
+	    					model.findNodeDataForKey(selectNodeKey).stepData.push({})
+	    				}
+    				}else{
+    					for(var i =model.findNodeDataForKey(selectNodeKey).stepData.length;i < $("#dataList p").length;i++){
+	    					model.findNodeDataForKey(selectNodeKey).stepData.push({})
+	    				}
+    				}
+    				if(!model.findNodeDataForKey(selectNodeKey).stepData[stepIndex].name){
+    					model.findNodeDataForKey(selectNodeKey).stepData[stepIndex].name = $(this).text();
+    				}
+    				if(!model.findNodeDataForKey(selectNodeKey).stepData[stepIndex].childData){
+    					model.findNodeDataForKey(selectNodeKey).stepData[stepIndex].childData={}
+	    				$(".dataHandle").each(function(){
+	    					if($(this).css("display") != "none"){
+	    						var idStr = $(this).children(".layui-input-block").eq(0).children().eq(0).attr("id");
+	    						var dataStr = $(this).children(".layui-input-block").eq(0).children().eq(0).val();
+	    						model.findNodeDataForKey(selectNodeKey).stepData[stepIndex].childData[idStr] = dataStr
+	    					}
+	    				})
+    				}else{
+    					if(!model.findNodeDataForKey(selectNodeKey).stepData[stepIndex].childData.contant){
+	    					model.findNodeDataForKey(selectNodeKey).stepData[stepIndex].childData.contant = $("#nodeName").val();
+    					}
+    					var childData = model.findNodeDataForKey(selectNodeKey).stepData[stepIndex].childData;
+    					for(var key in childData){
+    						$("#"+key).val(childData[key])
+    					}
+    					$(".dataHandle").each(function(){
+	    					if($(this).css("display") != "none"){
+	    						var idStr = $(this).children(".layui-input-block").eq(0).children().eq(0).attr("id");
+	    						var dataStr = $(this).children(".layui-input-block").eq(0).children().eq(0).val();
+	    						model.findNodeDataForKey(selectNodeKey).stepData[stepIndex].childData[idStr] = dataStr
+	    					}
+	    				})
+    				}
+    				/* if(!$("#contant").val()){
+	    				$("#contant").val($("#nodeName").val());
+    				} */
+    				form.render()
+    			})
+    			/* 子项标题 */
+    			/* $("#childNodeName").blur(function(){
+    				var childNodeName = $(this).val();
+    				var selectNodeKey = $("#selectNodeKey").val();
+    				var model = myDiagram.model;
+    				var stepData = model.findNodeDataForKey(selectNodeKey).stepData
+    				$(".dataHandle").each(function(){
+    					if($(this).css("display") != "none"){
+    						var idStr = $(this).children(".layui-input-block").eq(0).children().eq(0).attr("id");
+    						var dataStr = $(this).children(".layui-input-block").eq(0).children().eq(0).val();
+    						stepData[stepIndex].childData[idStr] = dataStr
+    					}
+    				})
+    				stepData[stepIndex].childData.childNodeName = childNodeName;
+    			}) */
+    			/* 类型 */
+    			form.on('select(inputType)', function(data){
+	       			var inputType = data.value
+	       			var selectNodeKey = $("#selectNodeKey").val();
+	       			var model = myDiagram.model;
+    				var stepData = model.findNodeDataForKey(selectNodeKey).stepData
+    				$(".dataHandle").each(function(){
+    					if($(this).css("display") != "none"){
+    						var idStr = $(this).children(".layui-input-block").eq(0).children().eq(0).attr("id");
+    						var dataStr = $(this).children(".layui-input-block").eq(0).children().eq(0).val();
+    						stepData[stepIndex].childData[idStr] = dataStr
+    					}
+    				})
+	       			stepData[stepIndex].childData.inputType = inputType;
+	       		});
+    			/* 全局变量 */
+    			form.on('select(overallScale)', function(data){
+	       			var overallScale = data.value
+	       			var selectNodeKey = $("#selectNodeKey").val();
+	       			var model = myDiagram.model;
+    				var stepData = model.findNodeDataForKey(selectNodeKey).stepData
+    				$(".dataHandle").each(function(){
+    					if($(this).css("display") != "none"){
+    						var idStr = $(this).children(".layui-input-block").eq(0).children().eq(0).attr("id");
+    						var dataStr = $(this).children(".layui-input-block").eq(0).children().eq(0).val();
+    						stepData[stepIndex].childData[idStr] = dataStr
+    					}
+    				})
+	       			stepData[stepIndex].childData.overallScale = overallScale;
+    				
+	       		});
+    			/* 运算条件 加减乘除 */
+    			form.on('select(ondition)', function(data){
+	       			var ondition = data.value
+	       			var selectNodeKey = $("#selectNodeKey").val();
+	       			var model = myDiagram.model;
+	       			console.log(model.findNodeDataForKey(selectNodeKey))
+    				var stepData = model.findNodeDataForKey(selectNodeKey).stepData
+	       			stepData[stepIndex].childData.ondition = ondition;
+	       			$(".dataHandle").each(function(){
+    					if($(this).css("display") != "none"){
+    						var idStr = $(this).children(".layui-input-block").eq(0).children().eq(0).attr("id");
+    						var dataStr = $(this).children(".layui-input-block").eq(0).children().eq(0).val();
+    						stepData[stepIndex].childData[idStr] = dataStr
+    					}
+    				})
+	       		});
+    			/* 比较条件   大于小于*/
+    			form.on('select(compare)', function(data){
+	       			var compare = data.value
+	       			var selectNodeKey = $("#selectNodeKey").val();
+	       			var model = myDiagram.model;
+    				var stepData = model.findNodeDataForKey(selectNodeKey).stepData
+	       			stepData[stepIndex].childData.compare = compare;
+    				$(".dataHandle").each(function(){
+    					if($(this).css("display") != "none"){
+    						var idStr = $(this).children(".layui-input-block").eq(0).children().eq(0).attr("id");
+    						var dataStr = $(this).children(".layui-input-block").eq(0).children().eq(0).val();
+    						stepData[stepIndex].childData[idStr] = dataStr
+    					}
+    				})
+	       		});
+    			/* 必填*/
+    			form.on('select(needInput)', function(data){
+	       			var needInput = data.value
+	       			var selectNodeKey = $("#selectNodeKey").val();
+	       			var model = myDiagram.model;
+    				var stepData = model.findNodeDataForKey(selectNodeKey).stepData
+	       			stepData[stepIndex].childData.needInput = needInput;
+    				$(".dataHandle").each(function(){
+    					if($(this).css("display") != "none"){
+    						var idStr = $(this).children(".layui-input-block").eq(0).children().eq(0).attr("id");
+    						var dataStr = $(this).children(".layui-input-block").eq(0).children().eq(0).val();
+    						stepData[stepIndex].childData[idStr] = dataStr
+    					}
+    				})
+	       		});
+    			/* 提示 */
+    			$("#tips").blur(function(){
+    				var tips = $(this).val();
+    				var selectNodeKey = $("#selectNodeKey").val();
+    				var model = myDiagram.model;
+    				var stepData = model.findNodeDataForKey(selectNodeKey).stepData
+    				stepData[stepIndex].childData.tips = tips;
+    				$(".dataHandle").each(function(){
+    					if($(this).css("display") != "none"){
+    						var idStr = $(this).children(".layui-input-block").eq(0).children().eq(0).attr("id");
+    						var dataStr = $(this).children(".layui-input-block").eq(0).children().eq(0).val();
+    						stepData[stepIndex].childData[idStr] = dataStr
+    					}
+    				})
+    			})
+    			/* 值或表达式 */
+    			$("#expression").blur(function(){
+    				var expression = $(this).val();
+    				var selectNodeKey = $("#selectNodeKey").val();
+    				var model = myDiagram.model;
+    				var stepData = model.findNodeDataForKey(selectNodeKey).stepData
+    				stepData[stepIndex].childData.expression = expression;
+    				$(".dataHandle").each(function(){
+    					if($(this).css("display") != "none"){
+    						var idStr = $(this).children(".layui-input-block").eq(0).children().eq(0).attr("id");
+    						var dataStr = $(this).children(".layui-input-block").eq(0).children().eq(0).val();
+    						stepData[stepIndex].childData[idStr] = dataStr
+    					}
+    				})
+    			})
+    			/* 内容 */
+    			/* $("#contant").blur(function(){
+    				var contant = $(this).val();
+    				var selectNodeKey = $("#selectNodeKey").val();
+    				var model = myDiagram.model;
+    				var stepData = model.findNodeDataForKey(selectNodeKey).stepData;
+    				stepData[stepIndex].childData.contant = contant;
+    				$(".dataHandle").each(function(){
+    					if($(this).css("display") != "none"){
+    						var idStr = $(this).children(".layui-input-block").eq(0).children().eq(0).attr("id");
+    						var dataStr = $(this).children(".layui-input-block").eq(0).children().eq(0).val();
+    						stepData[stepIndex].childData[idStr] = dataStr
+    					}
+    				})
+    			}) */
+    			$("#contant").off("click");
+    			$("#contant").on("click",function(){
+    				var contant = $("#contant").val();
+    				layer.open({
+		        		type:2
+		        		,title:'消息推送'
+		    			,area: ['500px','500px']
+		        		,content: '../data/ueEditMessage.html'
+		    	    	,btn: ['确定','关闭'] //按钮
+		        		,yes: function(index){
+		        			var UE = $(".layui-layer-iframe").find("iframe")[0].contentWindow.UE;
+		        			var goodsDesc = UE.getEditor('container').getContent();
+		        			var imgAry = "";
+		        			var isGo = true;
+		        			var doctorId = window.utils.getCookie("managerId");
+		        			$(goodsDesc).find('img').each(function(){
+		       	             	var src = $(this).attr('src');
+		       	             	imgAry += src + ",";
+		                    });
+		        			$("#contant").val(goodsDesc);
+		        			var model = myDiagram.model;
+		        			var stepData = model.findNodeDataForKey(selectNodeKey).stepData;
+		    				stepData[stepIndex].childData.contant = goodsDesc;
+		    				$(".dataHandle").each(function(){
+		    					if($(this).css("display") != "none"){
+		    						var idStr = $(this).children(".layui-input-block").eq(0).children().eq(0).attr("id");
+		    						var dataStr = $(this).children(".layui-input-block").eq(0).children().eq(0).val();
+		    						stepData[stepIndex].childData[idStr] = dataStr
+		    					}
+		    				})
+		    				layer.closeAll();
+		             		if(imgAry != "" && imgAry.length > 0 ){
+		             			if(isGo){
+		             				$.ajax({
+		           	        			url:'/file/upFile',
+		           	        			type: 'POST',
+		           	        			async:false,
+		           	    				data: {files:imgAry.substring(0,imgAry.length-1)},
+		           	    	        	success:function(res){
+		           	    	        		if(res.successful && res.resultCode.code == 'SUCCESS'){
+		           	    	        			
+		           	    	        		}else{
+		           	    	        			layer.msg('图片'+res.resultCode.message,{time: 2000,zIndex: layer.zIndex})
+		           	    	        			return;
+		           	    	        		}
+		               	        		},
+		               	        		error:function(err){
+		               	        			layer.msg('图片'+res.resultCode.message,{time: 2000,zIndex: layer.zIndex})
+		               	        			return;
+		               	        		}
+		                 			});
+		             			}
+		             		}
+		        		}
+		        		,zIndex: layer.zIndex //重点1
+		    	        ,success: function(layero){
+		    	        	setTimeout(() => {
+			    	        	var UE = $(".layui-layer-iframe").find("iframe")[0].contentWindow.UE;
+			        				UE.getEditor('container').setContent(contant);
+							}, 1000);
+		    	        }
+		        	})
+    			})
+    		}
+   			$(".dataHandle").hide()
+     	    /* $("#dataList").html("") */
+       		$(".showBtn").hide();
+   			var selectNodeKey = $("#selectNodeKey").val();
+   			var model = myDiagram.model;
+			var selectNode = model.findNodeDataForKey(selectNodeKey)
+       	  	if(propertyType == "0" || propertyType == "1" || propertyType == "8" || propertyType == "9" || propertyType == "10" ){
+       	  		if(propertyType == "0" || propertyType == "9"|| propertyType == "10"){
+       	  			$("#dataList").html("")
+       	  		}else if(propertyType == "1"){
+       	  			if(!selectNode.stepData){
+	     	  			$("#dataList").html('<p class="stepDataInput checkboxTiaojian" data-id="">设置多选的执行条件</p>')
+       	  			}else{
+       	  				setStepData(selectNode.stepData)
+       	  			}
+       	  		}else if(propertyType == "8"){
+	       	  		if(!selectNode.stepData){
+	       	  			$("#dataList").html('<p class="stepDataInput dateClander" data-id="">日历选择</p>')
+	       	  		}else{
+       	  				setStepData(selectNode.stepData)
+       	  			}
+       	  		}else{
+       	  			  
+       	  		}
+       	  	}else if(propertyType == "2"){
+       	  		$("#addLjtj").show();
+       	  		if(!selectNode.stepData){
+       	  			$("#dataList").html("")
+	  			}else{
+   	  				setStepData(selectNode.stepData)
+   	  			}
+       	  	}else if(propertyType == "3"){
+       	  		$("#add").show();
+	       	  	if(!selectNode.stepData){
+	   	  			$("#dataList").html("")
+	  			}else{
+   	  				setStepData(selectNode.stepData)
+   	  			}
+       	  	}else if(propertyType == "5"){
+       	  		$("#add").show();
+	       	  	if(!selectNode.stepData){
+	   	  			$("#dataList").html("")
+	  			}else{
+   	  				setStepData(selectNode.stepData)
+   	  			}
+       	  	}else if(propertyType == "4"){
+       	  		$("#addTj").show();
+       	  		$("#deleteTj").show();
+	       	  	if(!selectNode.stepData){
+	       	  		$("#dataList").html("<p class='stepDataInput tiaojian' data-id=''>条件1</p><p class='stepDataInput quesheng' data-id=''>缺省</p>")
+	       	  	}else{
+   	  				setStepData(selectNode.stepData)
+   	  			}
+       	  	}else if(propertyType == "6"){
+       	  		$("#addMsg").show();
+       	  		$("#deleteMsg").show();
+	       	  	if(!selectNode.stepData){
+	       	  		$("#dataList").html('<p class="stepDataInput xiaoxishezhi" data-id="">消息设置1</p>')
+	       	  	}else{
+   	  				setStepData(selectNode.stepData)
+   	  			}
+       	  	}else if(propertyType == "7"){
+       	  		$("#addPushMsg").show()
+	       	  	if(!selectNode.stepData){
+	       	  		$("#dataList").html('<p class="stepDataInput pushMessage" data-id="">推送的消息</p>')
+	       	  	}else{
+   	  				setStepData(selectNode.stepData)
+   	  			}
+       	  	}
+       	  	bind()
+    	});
+    	
+    }
+    function setStepData(stepData){
+    	var selectNodeKey = $("#selectNodeKey").val();
+    	var model = myDiagram.model;
+		var selectNode = model.findNodeDataForKey(selectNodeKey)
+		var propertyType = model.findNodeDataForKey(selectNodeKey).propertyType;
+		var index = $(".checkedP").index();
+		if(stepData){
+			var dataListHtml = "";
+			$.each(stepData, function(index, item) {
+				if(propertyType == "1"){
+					dataListHtml+='<p class="stepDataInput checkboxTiaojian" data-id="'+item.id+'">'+item.childData.childNodeName+'</p>'
+				}else if(propertyType == "4"){
+					if(!!item.childData){
+						dataListHtml+='<p class="stepDataInput tiaojian" data-id="'+item.id+'">'+item.name+'</p>'
+					}else{
+						dataListHtml+='<p class="stepDataInput tiaojian" data-id="'+item.id+'">缺省</p>'
+					}
+				}else if(propertyType == "6"){
+					dataListHtml+='<p class="stepDataInput xiaoxishezhi" data-id="'+item.id+'">'+item.name+'</p>'
+				}else if(propertyType == "7"){
+					dataListHtml+='<p class="stepDataInput pushMessage" data-id="'+item.id+'">推送的消息</p>'
+				}else if(propertyType == "8"){
+					dataListHtml+='<p class="stepDataInput dateClander" data-id="'+item.id+'">'+item.childData.childNodeName+'</p>'
+				}else{
+					if(!!item.name){
+						dataListHtml+='<p class="stepDataInput" data-id="'+item.id+'">'+item.name+'</p>'
+					}else{
+						dataListHtml+=""
+					}
+				}
+				
+            });
+			$("#dataList").html(dataListHtml)
+		}
+    }
+    /* function save() {
+      
+    } */
+    
+    function load() {
+      myDiagram.model = go.Model.fromJson(document.getElementById("mySavedModel").value);
+    }
+    function layout() {
+      myDiagram.layoutDiagram(true);
+    }
+    // Define a custom tool that changes a drag operation on a Link to a relinking operation,
+    // but that operates like a normal DraggingTool otherwise.
+    function DragLinkingTool() {
+      go.DraggingTool.call(this);
+      this.isGridSnapEnabled = true;
+      this.isGridSnapRealtime = false;
+      this.gridSnapCellSize = new go.Size(182, 1);
+      this.gridSnapOrigin = new go.Point(5.5, 0);
+    }
+    go.Diagram.inherit(DragLinkingTool, go.DraggingTool);
+    // Handle dragging a link specially -- by starting the RelinkingTool on that Link
+    /** @override */
+    DragLinkingTool.prototype.doActivate = function() {
+      var diagram = this.diagram;
+      if (diagram === null) return;
+      this.standardMouseSelect();
+      var main = this.currentPart;  // this is set by the standardMouseSelect
+      if (main instanceof go.Link) { // maybe start relinking instead of dragging
+        var relinkingtool = diagram.toolManager.relinkingTool;
+        // tell the RelinkingTool to work on this Link, not what is under the mouse
+        relinkingtool.originalLink = main;
+        // start the RelinkingTool
+        diagram.currentTool = relinkingtool;
+        // can activate it right now, because it already has the originalLink to reconnect
+        relinkingtool.doActivate();
+        relinkingtool.doMouseMove();
+      } else {
+        go.DraggingTool.prototype.doActivate.call(this);
+      }
+    };
+    // end DragLinkingTool
+  </script>
+</head>
+<body onload="init()">
+<div class="layui-layout layui-layout-admin">
+	<div class="layui-main" style="margin: 15px">
+		<div id="sample" class="layui-form">
+			<div style="width:calc(100% - 350px);float: left ">
+			<a class="layui-btn" id="saveWorkflow">保存图谱</a>
+			<button class="layui-btn layui-btn-danger" id="deleteWorkFlow">删除图谱</button>
+			<a class="layui-btn layui-btn-normal" id="addFloder">插入文件</a>
+			<div class="layui-input-inline" style="margin-left: 5px">
+		        <select id="judgeModule" lay-verify="required">
+			        <option value="">请选择</option>
+			        <option value="0">北京</option>
+			        <option value="1">上海</option>
+			        <option value="2">广州</option>
+			        <option value="3">深圳</option>
+			        <option value="4">杭州</option>
+		        </select>
+		    </div>
+		    <a class="layui-btn layui-btn-normal" id="addMoudule">添加模块</a>
+			<div id="myDiagramDiv" style="border: solid 1px black; height:700px;margin-top: 15px"></div>
+			    <!-- <button onclick="load()" style="display: none">Load</button>
+			    <button onclick="layout()" style="display: none">Do Layout</button> -->
+			    <textarea id="mySavedModel" style="width:100%;height:300px;display: none">
+					{ "class": "go.GraphLinksModel",
+					  "nodeDataArray": [
+					    { "key":1, "text":"图谱名称", "category":"Loading" }
+					  ],
+					  "linkDataArray": [
+					    { "from":1, "to":2 }
+					  ]
+					}
+			    </textarea>
+			</div>
+			<div id="node_handle" class="layui-form" style="width: 300px;float: right">
+				<blockquote class="layui-elem-quote">流程步骤属性</blockquote>
+				<div class="layui-form-item">
+					<label class="layui-form-label">节点名称</label>
+					<div class="layui-input-block">
+						<input type="text" id="nodeName" name="nodeName" autocomplete="off" class="layui-input"/>
+					</div>
+				</div>
+				<div class="layui-form-item">
+					<label class="layui-form-label">节点类型</label>
+					<div class="layui-input-block">
+						<select id="propertyType" name="propertyType" lay-filter="propertyType">
+							<option value="">请选择</option>
+							<option value="0">单选</option>
+							<option value="1">多选</option>
+							<option value="2">路径执行</option>
+							<option value="3">选项</option>
+							<option value="4">数据判断</option>
+							<option value="5">用户输入</option>
+							<option value="6">消息设置</option>
+							<option value="7">消息推送</option>
+							<option value="8">日历选择</option>
+							<!-- <option value="9">多选执行</option>
+							<option value="10">多选结束</option> -->
+						</select>
+					</div>
+				</div>
+				<blockquote class="layui-elem-quote">步骤相关数据</blockquote>
+				<div class="layui-form-item">
+					<div class="dataList" id="dataList"></div>
+					<button class="layui-btn layui-btn-small showBtn" id="add">添加数据</button>
+					<button class="layui-btn layui-btn-small showBtn" style="display: none" id="addMsg">添加消息</button>
+					<button class="layui-btn layui-btn-small showBtn layui-btn-danger" style="display: none" id="deleteMsg">删除消息</button>
+					<button class="layui-btn layui-btn-small showBtn" style="display: none" id="addTj">添加条件</button>
+					<button class="layui-btn layui-btn-small showBtn layui-btn-danger" style="display: none" id="deleteTj">删除条件</button>
+					<button class="layui-btn layui-btn-small showBtn" style="display: none" id="addPushMsg">添加推送消息</button>
+					<button class="layui-btn layui-btn-small showBtn" style="display: none" id="addLjtj">添加路径条件</button>
+					<button class="layui-btn layui-btn-small showBtn layui-btn-danger" style="display: none" id="delete">删除</button>
+				</div>
+				<blockquote class="layui-elem-quote">数据操作动作</blockquote>
+				<div style="display: none" class="layui-form-item dataHandle">
+					<label class="layui-form-label">子项标题</label>
+					<div class="layui-input-block">
+						<input type="text" id="childNodeName" name="childNodeName" autocomplete="off" class="layui-input"/>
+					</div>
+				</div>
+				<div class="layui-form-item dataHandle type5">
+					<label class="layui-form-label">类型</label>
+					<div class="layui-input-block">
+						<select class="form-control" id="inputType" lay-filter="inputType">
+							<option value="0">数字</option>
+							<option value="1">图像</option>
+							<option value="2">文件</option>
+							<option value="3">文本</option>
+							<option value="4">日期</option>
+							<option value="5">时间</option>
+							<option value="6">时间戳</option>
+							<option value="7">电子邮件</option>
+						</select>
+					</div>
+				</div>
+				<div class="layui-form-item dataHandle type1 type8 type4 type6">
+					<label class="layui-form-label">全局变量</label>
+					<div class="layui-input-block">
+						<select class="form-control" id="overallScale" lay-filter="overallScale">
+							<option value="">请选择全局变量</option>
+						</select>
+					</div>
+				</div>
+				<div class="layui-form-item dataHandle type1 type3">
+					<label class="layui-form-label">条件</label>
+					<div class="layui-input-block">
+						<select class="form-control" id="ondition" lay-filter="ondition">
+							<option value="0">加法</option>
+							<option value="1">减法</option>
+							<option value="2">赋值</option>
+							<option value="3">算数运算</option>
+						</select>
+					</div>
+				</div>
+				<div class="layui-form-item dataHandle type2 type4 type5">
+					<label class="layui-form-label">条件</label>
+					<div class="layui-input-block">
+						<select class="form-control" id="compare" lay-filter="compare">
+							<option value="0">无</option>
+							<option value="1">大于</option>
+							<option value="2">小于</option>
+							<option value="3">大于等于</option>
+							<option value="4">小于等于</option>
+							<option value="5">等于</option>
+							<option value="6">不等于</option>
+							<option value="7">范围</option>
+						</select>
+					</div>
+				</div>
+				<div class="layui-form-item dataHandle type5">
+					<label class="layui-form-label">必填</label>
+					<div class="layui-input-block">
+						<select class="form-control" id="needInput" lay-filter="needInput">
+							<option value="0">必填</option>
+							<option value="1">选填</option>
+						</select>
+					</div>
+				</div>
+				<div class="layui-form-item dataHandle type5">
+					<label class="layui-form-label">提示</label>
+					<div class="layui-input-block">
+						<input type="text" id="tips" value="" name="tips" autocomplete="off" class="layui-input"/>
+					</div>
+				</div>
+				<div class="layui-form-item dataHandle type1 type2 type3 type4 type5">
+					<label class="layui-form-label">值或表达式</label>
+					<div class="layui-input-block">
+						<input type="text" id="expression" value="1" name="expression" autocomplete="off" class="layui-input"/>
+					</div>
+				</div>
+				<div class="layui-form-item dataHandle type2 type3 type4 type6">
+					<label class="layui-form-label">内容</label>
+					<div class="layui-input-block">
+						<input type="text" id="contant" readonly value="" name="contant" autocomplete="off" class="layui-input"/>
+					</div>
+				</div>
+			</div>
+		</div>
+	</div>
+	<input type="hidden" id="selectNodeKey" value=""/>
+	<div id="tipForm_add" class="layui-form" style="display: none">
+		<div style="margin: 15px">
+			<ul class="layui-tab-title">
+		       <li class="layui-this">创建变量</li>
+		    </ul>
+		    <div class="layui-tab-content">
+		    	<div class="layui-tab-item layui-show">
+		    		<label class="layui-form-label">父节点：</label>
+					<div class="layui-input-block">
+			    		<select id="fatherScale" lay-filter="fatherScale" lay-search="">
+			    			<option value="">请选择父节点</option>
+			    		</select>
+		    		</div>
+		    		<label class="layui-form-label" style="margin-top:15px">变量：</label>
+					<div class="layui-input-inline" style="margin-top:15px">
+			    		<select id="scaleList" lay-verify="required" lay-filter="childScale" lay-search="">
+			    			<option value="">请创建或使用phr变量</option>
+			    		</select>
+		    		</div>
+					<div class="layui-input-inline" style="margin-top:15px;width: 80px;">
+						<span></span>
+		    		</div>
+		    	</div>
+		    	<div style="margin-top: 15px;text-align: right">
+		    		<button class="layui-btn layui-btn-small" id="creatPhr">创建</button>
+		    		<button class="layui-btn layui-btn-danger layui-btn-small" id="deletePhr">删除</button>
+		    	</div>
+		    	<div style="margin-top: 15px;" id="scaleCheckbox">
+		    	</div>
+		    </div>
+		</div>
+	</div>
+	<div id="messagePush_add" class="layui-form" style="width: 100%;display: none;">
+		<div style="margin: 15px">
+	    	<div class="layui-form-item">
+	    		<label class="layui-form-label">推送方式 设定：</label>
+				<div class="layui-input-block">
+		    		<select id="pushMethod" lay-verify="required" lay-search="">
+		    			<option value="1">微信公众号</option>
+		    		</select>
+	    		</div>
+	    	</div>
+	    	<div class="layui-form-item layui-show">
+	    		<label class="layui-form-label">推送时长 设定(天)：</label>
+				<div class="layui-input-block">
+					<input type="number" id="pushDataLength" value="1" autocomplete="off" class="layui-input"/>
+	    		</div>
+	    	</div>
+		</div>
+		<div class="layui-tab" style="padding: 15px" lay-filter="demo" lay-allowclose="true">
+		  	<ul class="layui-tab-title" id="changjing">
+			    <li class="layui-this">场景1</li>
+		  	</ul>
+		  	<div class="layui-tab-content">
+			    <div class="layui-tab-item layui-show">
+			    	<div class="layui-form-item">
+			    		<label class="layui-form-label">推送频率：</label>
+						<div class="layui-input-block">
+							<input type="text" id="" placeholder="计算方法：推送时长 ÷次数" value="1" autocomplete="off" class="layui-input pushPinlv"/>
+			    		</div>
+			    	</div>
+			    	<div class="layui-form-item">
+			    		<label class="layui-form-label">推送时间：</label>
+						<div class="layui-input-block">
+							<input type="text" id="" autocomplete="off" class="layui-input pushTime" placeholder="请输入时间，例：14:30">
+			    		</div>
+			    	</div>
+			    	<div class="layui-form-item">
+			    		<label class="layui-form-label">推送内容：</label>
+						<div class="layui-input-block">
+							<textarea type="text" id="" value="1" autocomplete="off" class="layui-textarea pushContant"></textarea>
+			    		</div>
+			    	</div>
+			    	<div class="layui-form-item">
+			    		<label class="layui-form-label">推送流程：</label>
+						<div class="layui-input-block">
+							<select lay-verify="required" class="workflowList" lay-search="">
+				    			<option value="">无</option>
+				    		</select>
+			    		</div>
+			    	</div>
+			    </div>
+		  	</div>
+		  	<div class="site-demo-button" style="margin-top: 15px;text-align: right">
+	    		<button class="layui-btn site-demo-active" data-type="tabAdd">新增Tab项</button>
+	    	</div>
+		</div>
+	</div>
+	<div id="floder_add" class="layui-form" style="display: none">
+		<div class="layui-form" style="margin: 15px">
+			<div class="layui-form-item">
+				<div class="layui-input-inline">
+					<button class="layui-btn checkPic">选择图片</button>
+					<input type="file" name="file" class="layui-upload-file"
+						id="aptitude" multiple="multiple"
+						accept="image/png,image/gif,image/jpg,image/bmp,image/jpeg" />
+				</div>
+				<div class="layui-form-mid layui-word-aux">最多支持上传五张图片</div>
+				<div class="layui-clear blockImages" style="padding-top: 15px"></div>
+			</div>
+		</div>
+	</div>
+</div>
+<script>
+$(function(){
+	layui.use(['element','layer','jquery','form','laydate'],function(){
+		var $=layui.jquery,layer = layui.layer, laydate = layui.laydate,form = layui.form(),element = layui.element();
+		var tempImagesUrl = [];
+		 /* 查询流程 */
+		var id = window.utils.getRequestParam("id");
+		var managerId = localStorage.getItem('managerId');
+		if(id){
+			setTimeout(() => {
+				getWorkflowById()
+			}, 500);
+		}
+		function getWorkflowById(){
+			$.ajax({
+		    	url:'/procedure/getOne?id='+id,
+		        type:'GET',
+		        success : function(data){
+		        	if(data.data){
+		        		var model = JSON.parse(data.data.content);
+		      		    myDiagram.model = go.Model.fromJson(model);
+		        	}
+		        },
+		        error : function(data){
+		        	layer.msg('图谱加载失败！',{zIndex: layer.index});
+		        }
+			})
+		}
+		/* 加载PHR */
+	    getScalc("");
+	    form.on('select(fatherScale)', function(data){
+		  	var fatherScale = data.value;
+		  	getScalc(fatherScale)
+		});
+		function getScalc(fatherScale){
+			var obj = new Object()
+			obj.cnName = "";
+			obj.enName = "";
+			obj.uid = "";
+			obj.pid = !!fatherScale?fatherScale:"";
+			obj.showCount = 1000;
+			obj.currentPage = 1;
+			$.ajax({
+		    	url:'/procedureVar/getPageProcedureVar',
+		        type:'POST',
+		        data: $.toJSON(obj),
+				dataType: 'json',
+				contentType: 'application/json',
+		        success : function(data){
+		        	if(data.successful){
+		        		var html="",items = data.items;
+		        		var fatherhtml="";
+		        		html += '<option value="">请创建或使用phr变量</option>';
+	        			fatherhtml += '<option value="">请选择父节点</option>';
+	        			if(!fatherScale){
+	        				for(var i = 0;i < items.length; i++){
+			        			if(!items[i].pid){
+			        				fatherhtml += '<option value="'+items[i].id+'" data-unit="'+items[i].unit+'">'+items[i].cnName+'</option>'
+			        			}
+			        		}
+	        				$("#fatherScale").html(fatherhtml)
+	        			}else{
+			        		for(var i = 0;i < items.length; i++){
+			        			if(items[i].pid == fatherScale){
+			        				var unit = items[i].unit == "无"?"":items[i].unit;
+			        				if(!unit){
+					        			html += '<option value="'+items[i].enName+'">'+items[i].cnName+'</option>'
+			        				}else{
+					        			html += '<option value="'+items[i].enName+'">'+items[i].cnName+'('+unit+')</option>'
+			        				}
+			        			}
+			        		}
+				        	$("#scaleList").html(html)
+	        			}
+			        	form.render()
+		        	}
+		        },
+		        error : function(data){
+		        	layer.close(layer.index);//取消遮罩
+		        	layer.msg('加载失败！');
+		        }
+		    });
+		}
+		getWorkflow()
+		function getWorkflow(){
+			var obj = new Object()
+			obj.showCount = 10000;
+			obj.currentPage = 1;
+			$.ajax({
+		    	url:'/message/getPageMessages',
+		        type:'POST',
+		        data: $.toJSON(obj),
+				dataType: 'json',
+				contentType: 'application/json',
+		        success : function(data){
+		        	if(data.successful){
+		        		var html='<option value="">无</option>';
+		        		$.each(data.items,function(index,item){
+		        			html+='<option value="'+item.id+'">'+item.title+'</option>';
+		        		})
+		        	}else{
+		        		layer.msg(data.resultCode.message,{zIndex: layer.index});
+		        	}
+		        },
+		        error : function(data){
+		        	layer.msg('图谱加载失败！',{zIndex: layer.index});
+		        }
+			})
+		}
+	    $('#aptitude').change(function(e) {
+			if((tempImagesUrl && tempImagesUrl.length >= 5)) {
+				return layer.msg('已达到文件上限，无法上传');
+			}
+			if((this.files.length + tempImagesUrl.length) > 5) {
+				var _this = this;
+				var num = this.files.length - (5 - tempImagesUrl.length);
+				return layer.msg('已达到文件上限，超出' + num + '张，最多支持上传五张图片。请重新选择', function() {
+				});
+			}
+			if(!this.files || this.files.length == 0) {
+				return;
+			}
+			for(var i = 0, file; file = this.files[i]; i++) {
+				var fileUrl = $.trim(file.name);
+				var extStart = fileUrl.lastIndexOf(".");
+				var ext = fileUrl.substring(extStart, fileUrl.length).toUpperCase();
+				if(fileUrl == '') {
+					layer.msg('请选择图片上传！');
+					return;
+				} else if(ext != '.PNG' && ext != '.GIF' && ext != '.BMP' && ext != '.JPG') {
+					layer.msg('图片格式不支持，请重新选择上传！');
+					return
+				}
+			}
+			var that = this;
+			imgUpload(this, function(data) {
+				if(data.successful) {
+					var temp = data.data ? data.data.split(';') : [];
+					if(temp && temp[temp.length - 1] === "") {
+						temp.pop();
+					}
+					if(tempImagesUrl.length > 0) {
+						tempImagesUrl = tempImagesUrl.concat(temp);
+					} else {
+						tempImagesUrl = temp;
+					}
+					var html = '';
+					var style = 'display:inline-block;vertical-align: middle;width:95px;height:95px;text-align:center;margin-right: 10px;'
+					console.log(that.files);
+					for(var i = 0, file; file = that.files[i]; i++) {
+						if(that.files && file) {
+							html += '<div style="' + style + '"><img style="width: 100%;height:100%;" src="' + window.URL.createObjectURL(file) + '"/><i class="layui-icon" style="font-size: 30px; color: #1E9FFF;" icon-num="'+i+'">&#xe640;</i></div>';
+						} else {
+							html += '<div style="' + style + '"><img style="width: 100%;height:100%;" src="' + file.value + '"/><i class="layui-icon" style="font-size: 30px; color: #1E9FFF;" icon-num="'+i+'">&#xe640;</i></div>';
+						}
+					}
+					delAndEnlarge(html,tempImagesUrl);
+				} else {
+					layer.msg("图片上传到服务器失败！");
+				}
+			}, function(error) {
+				layer.msg("图片上传到服务器失败");
+				console.log(error);
+			});
+			// 上传图片
+			function imgUpload(that, cb, errFn) {
+				var formData = new FormData();
+				for(var i = 0, file; file = that.files[i]; i++) {
+					formData.append('file',file);
+				}
+				$.ajax({
+					type: "POST",
+					url: "/file/upload",
+					data: formData,
+					async: false,
+					cache: false,
+					processData: false,
+					contentType: false,
+					dataType: "json",
+					success: function(data) {
+						cb(data);
+					},
+					error: function(error) {
+						errFn(error);
+					}
+				});
+			};
+			// 删除，放大
+		    function delAndEnlarge(html,tempImagesUrl){
+		    	html && $('#floder_add .blockImages').append(html);
+				$('#floder_add .blockImages div i.layui-icon').bind('click',function(e){
+					var _this = this;
+					layer.confirm('您确定要删除此张图片?',{title:'警告'}, function(index){
+						$('#floder_add .blockImages div')[$(_this).attr('icon-num')].remove();
+						tempImagesUrl.splice($(_this).attr('icon-num'),1);
+						$('#floder_add .blockImages div i.layui-icon').each(function(key,val){
+							$(this).attr('icon-num',key);
+						});
+					    layer.close(index);
+					});
+				});
+		    }
+		});
+	    /* 加载模块 */
+	    loadModule()
+	    var moduleData = "";
+	    function loadModule(){
+		    var obj = new Object()
+			obj.name = "";
+			obj.id = "";
+			obj.content = "";
+			obj.createTime = "";
+			obj.updateTime = "";
+			obj.showCount = 1000;
+			obj.currentPage = 1;
+			$.ajax({
+		    	url:'/procedure/module/getPageModules',
+		        type:'POST',
+		        data: $.toJSON(obj),
+				dataType: 'json',
+				contentType: 'application/json',
+		        success : function(data){
+		        	pageSum = data.pagesCount;
+		        	moduleData = data.items;
+		        	if(data.successful){
+		        		var html='<option value="all">请选择</option>';
+		        		$.each(data.items,function(index,item){
+		        			html+='<option value="'+item.id+'">'+item.name+'</option>';
+		        		})
+		        		$("#judgeModule").html(html);
+		        		form.render();
+		        	}else{
+		        		layer.msg(data.resultCode.message);
+		        	}
+		        },
+		        error : function(data){
+		        	layer.close(layer.index);//取消遮罩
+		        	layer.msg('加载失败！');
+		        }
+		    });
+	    }
+	    $("#addFloder").click(function(){
+	    	layer.open({
+				title:'新增变量信息',
+	            type: 1,
+	            area: ['650px', '400px'],//宽高
+	            shade: 0.8,
+	            btn:['确定'],
+	            content: $('#floder_add'),
+	            yes: function(index, layero){
+	            	var key = $("#selectNodeKey").val();
+	            	if(!$("#selectNodeKey").val()){
+	            		layer.msg("请先选择要插入文件的节点",{zIndex:layer.index})
+	            	}else{
+	            		layer.close(index);
+	            		var model = myDiagram.model;
+	          		    var selectNode = model.findNodeDataForKey(key);
+	          		    var text = selectNode.text.split(",")[0];
+	          		    model.findNodeDataForKey(key).text = text+","+tempImagesUrl
+	            		layer.msg("插入成功！");
+	          		    myDiagram.model = go.Model.fromJson(model);
+	            	}
+	            }
+	    	})
+	   	})
+	   	function save(){
+	    	var workflowId = window.utils.getRequestParam("id");
+	  	    var obj = new Object();
+	    	if(workflowId){
+	    		var url = '/procedure/update';
+	    		obj.id=workflowId;
+	    	}else{
+	    		var url = '/procedure/create'
+	    	}
+	   		document.getElementById("mySavedModel").value = myDiagram.model.toJson();
+	        myDiagram.isModified = false;
+	        /* var managerId = window.utils.getCookie("managerId"); */
+	  	    var model = JSON.parse(myDiagram.model.toJson())
+	    	  obj.managerId = managerId;
+	    	  obj.title = model.nodeDataArray[0].text;
+	    	  obj.status = "1";
+	    	  obj.content = JSON.stringify(model);
+	    	  obj.createTime = "";
+	    	  obj.updateTime = "";
+	          $.ajax({
+	              url:url,
+	              type:'POST',
+	              data: $.toJSON(obj),
+	              dataType:'json',
+	              contentType: "application/json",
+	              success : function(data){
+	                  if(data.successful){
+	                	  layer.msg("保存成功",{time: 1500},function(){
+	                		  if(!workflowId){
+								  window.opener.location.reload()
+	                	          window.close();
+	                		  }else{
+	                			  /* window.location.reload(); */
+	                		  }
+	               	      })
+	                  }else{
+	                      layer.msg(data.resultCode.message);
+	                  }
+	              },
+	              error:function(error){
+	                  console.error(error)
+	                  layer.msg('添加失败!');
+	              }
+	        });
+	    }
+	    function deleteWorkflow(){
+	    	var workflowId = window.utils.getRequestParam("id");
+	    	$.ajax({
+	            url: '/procedure/delete?id='+workflowId,
+	            type:'POST',
+	            success : function(data){
+	                if(data.successful){
+	              	    layer.msg('删除成功！',{time: 2000},function(){
+							window.opener.location.reload()
+	              	    	window.close();
+		        		});
+	                }else{
+	                    layer.msg(data.resultCode.message);
+	                }
+	            },
+	            error:function(error){
+	                layer.msg('删除失败!');
+	            }
+	    	})
+	    };
+	   	$("#saveWorkflow").click(function(){
+	   		save()
+	   	})
+	   	$("#deleteWorkFlow").click(function(){
+	   		deleteWorkflow()
+	   	})
+	   	getData();
+	   	function getData(){
+			var obj={title:"",managerId:managerId,showCount:1000,currentPage:1};
+			$.ajax({
+		    	url:'/procedure/getPageProcedures',
+		    	type:'POST',
+	            data: $.toJSON(obj),
+	            async: false,
+	            dataType:'json',
+	            contentType: "application/json",
+	            success : function(data){
+	            	if(data.items.length > 0){
+		           		var workflowList = data.items;
+	           			var options = '<option value="all">请选择</option>';
+		            	$.each(workflowList,function(index,item){
+		            		options += '<option value="'+item.id+'">'+item.title+'</option>'
+		        		})
+		        		$(".workflowList").html(options)
+	            	}
+	            },
+		        error : function(data){
+		        	layer.close(layer.index);//取消遮罩
+		        	layer.msg('加载失败！');
+		        }
+		    });
+	   	}
+	})
+})
+</script>
+</body>
+</html>

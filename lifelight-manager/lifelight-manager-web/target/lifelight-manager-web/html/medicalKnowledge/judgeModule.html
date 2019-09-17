@@ -1,0 +1,368 @@
+<!DOCTYPE html>
+<html>
+<head lang="en">
+    <meta charset="UTF-8">
+    <title>判断模块管理</title>
+    <link rel="icon" href="../../favicon.ico" type="image/x-icon" />
+ 	<link rel="shortcut icon" href="../../favicon.ico" type="image/x-icon" />
+    <link rel="stylesheet" href="../../layui/css/layui.css"/>
+</head>
+<body>
+<div class="layui-main" style="width: auto">
+    <div class="my-tab-select">
+        <div class="layui-form">
+        <ul>
+            <li>
+                <label for="vender">项目名称：</label>
+                <input type="text" class="layui-input" id="projectName"/>
+            </li>
+        </ul>
+        <p style="text-align: right">
+        	<button class="layui-btn " id="search">搜索</button>
+       		<button class="layui-btn " id="add">新增</button>
+       	</p>
+        </div>
+    </div>
+    <div class="layui-form">
+        <table class="layui-table" style="width: auto;min-width: 100%">
+            <colgroup>
+	            <col width="200">
+	            <col width="">
+	            <col width="150">
+	            <col width="240">
+            </colgroup>
+            <thead>
+            	<tr>
+            		<th>判断模块名称</th>
+            		<th>判断标准</th>
+            		<th>结论</th>
+            		<th>操作</th>
+            	</tr>
+            </thead>
+            <tbody>
+            </tbody>
+        </table>
+    </div>
+    <div id="pagging"></div>
+    <div id="tipForm_add" class="layui-form" action="" style="padding-top:20px;padding-right:10px;display: none">
+		<div class="layui-form-item">
+			<label class="layui-form-label">模块名称</label>
+			<div class="layui-input-block">
+				<input type="text" id="save_cnName" name="save_cnName" autocomplete="off" class="layui-input"/>
+			</div>
+		</div>
+		<div class="layui-form-item contants">
+			<label class="layui-form-label">判断标准</label>
+			<div class="layui-input-inline">
+				<select class="form-control contants-biaozhun" id="compare" lay-filter="compare" style="width: 250px" >
+					<option value="0">无</option>
+					<option value="1">大于</option>
+					<option value="2">小于</option>
+					<option value="3">大于等于</option>
+					<option value="4">小于等于</option>
+					<option value="5">等于</option>
+					<option value="6">不等于</option>
+					<option value="7">范围</option>
+				</select>
+			</div>
+			<label class="layui-form-label" style="width: auto">值</label>
+			<div class="layui-input-inline" style="width: 60px" >
+				<input type="text" autocomplete="off" class="layui-input contants-val"/>
+			</div>
+			<label class="layui-form-label" style="width: 30px">结论</label>
+			<div class="layui-input-inline">
+				<input type="text" autocomplete="off" class="layui-input contants-jielun"/>
+			</div>
+		</div>
+		<div class="layui-form-item">
+			<div class="layui-input-block">
+				<button class="layui-btn layui-btn-small" id="addJudgeModule">添加判断标准</button>
+			</div>
+		</div>
+	</div>
+</div>
+<script src="../../js/jquery-2.1.1.min.js"></script>
+<script type="text/javascript" src="../../js/jquery-json.js"></script>
+<script src="../../layui/layui.js" charset="utf-8"></script>
+<script src="../../js/tool.js" charset="utf-8"></script>
+<script type="text/javascript">
+	layui.use(['element', 'form', 'layer', 'jquery','laypage'], function() {
+		var $ = layui.jquery,form = layui.form(),element = layui.element();
+		var layer = layui.layer,laypage = layui.laypage,pageSum=0;
+		
+		//获取当前登录人id
+		var managerId = window.utils.getCookie('managerId');
+		getData(1);
+		function getData(pageNum){
+			layer.open({type: 3,content:""})
+			var obj = new Object()
+			obj.name = $("#projectName").val();
+			obj.id = "";
+			obj.content = "";
+			obj.createTime = "";
+			obj.updateTime = "";
+			obj.showCount = 10;
+			obj.currentPage = pageNum;
+			$.ajax({
+		    	url:'/procedure/module/getPageModules',
+		        type:'POST',
+		        data: $.toJSON(obj),
+				dataType: 'json',
+				contentType: 'application/json',
+		        success : function(data){
+		        	pageSum = data.pagesCount;
+		        	if(data.successful){
+		        		var html="";
+		        		if(data.length<=0){
+							layer.msg("暂无数据！");
+							return;
+		        		}
+		        		$.each(data.items,function(index,item){
+		        			html+='<tr><td>'+item.name+'</td>';
+		        			var contentArr = item.content.split("-");
+		        			var biaozhunStr = "";
+		        			var jielunStr = "";
+		        			for(var i =0;i < contentArr.length;i++){
+		        				var contentObj = JSON.parse(contentArr[i]);
+		        				biaozhunStr += "<p>"+getBiaozhun(contentObj.biaozhun)+contentObj.val+"</p>";
+		        				jielunStr += "<p>"+contentObj.jielun+"</p>";
+		        			}
+		        			html+='<td>'+biaozhunStr+'</td>';
+		        			html+='<td>'+jielunStr+'</td>';
+		        			html+='<td>'
+	        				html+='<button data-id="'+item.id+'" data-contant='+item.content+' data-name="'+item.name+'" class="layui-btn layui-btn-small scale_edit">修改</button>'
+	        				html+='<button data-id="'+item.id+'" class="layui-btn layui-btn-small layui-btn-danger scale_delete">删除</button>'
+	        				html+='</td>';
+		        			html+='</tr>'
+		        		})
+		        		$("table tbody").html(html);
+		        		form.render();
+		        		layer.close(layer.index);//取消遮罩
+		        		//分页
+		        		laypage({
+					        cont: 'pagging'
+				    		, pages: pageSum
+					        , curr: data.pageNumber||1
+					        ,jump: function(obj, first){
+					        	if(!first){
+						            pageNum = obj.curr;
+						            getData(pageNum);
+					            }
+					        }
+		        		});
+		        		blind()
+		        	}else{
+		        		layer.msg(data.resultCode.message);
+		        	}
+		        },
+		        error : function(data){
+		        	layer.close(layer.index);//取消遮罩
+		        	layer.msg('加载失败！');
+		        }
+		    });
+		}
+		$("#add").on("click",function(){
+			addScale();
+		});
+		function getBiaozhun(a){
+			if(a == "0"){
+				return "无";
+			}else if(a == "1"){
+				return "大于";
+			}else if(a == "2"){
+				return "小于";
+			}else if(a == "3"){
+				return "大于等于";
+			}else if(a == "4"){
+				return "小于等于";
+			}else if(a == "5"){
+				return "等于";
+			}else if(a == "6"){
+				return "不等于";
+			}else if(a == "7"){
+				return "范围";
+			}
+		}
+		function blind(){
+			$(".scale_edit").on("click",function(){
+				var id =  $(this).attr("data-id");
+				var contant =  $(this).attr("data-contant");
+				var name =  $(this).attr("data-name");
+				$("#save_cnName").val(name);
+				var contantArr = contant.split("-");
+				for(var i = 0;i < contantArr.length;i++){
+					var contantObj = JSON.parse(contantArr[i]);
+					if(i > 0){
+						var html = "";
+						html += '<div class="layui-form-item contants addContants">'
+						html += '<label class="layui-form-label">判断标准</label>'
+						html += '<div class="layui-input-inline">'
+						html += '<select class="form-control contants-biaozhun" lay-filter="compare" style="width: 250px" >'
+						html += '<option value="0">无</option>';
+						html += '<option value="1">大于</option>';
+						html += '<option value="2">小于</option>';
+						html += '<option value="3">大于等于</option>';
+						html += '<option value="4">小于等于</option>';
+						html += '<option value="5">等于</option>';
+						html += '<option value="6">不等于</option>';
+						html += '<option value="7">范围</option>';
+						html += '</select>';
+						html += '</div>'
+						html += '<label class="layui-form-label" style="width: auto">值</label>'
+						html += '<div class="layui-input-inline" style="width: 60px" >'
+						html += '<input type="text" autocomplete="off" value="'+contantObj.val+'" class="layui-input contants-val"/>'
+						html += '</div>'
+						html += '<label class="layui-form-label" style="width: 30px">结论</label>'
+						html += '<div class="layui-input-inline">'
+						html += '<input type="text" value="'+contantObj.jielun+'" autocomplete="off" class="layui-input contants-jielun"/>'
+						html += '</div>'
+						html += '<div class="layui-input-inline" style="width: auto">'
+						html += '<button style="margin-top:3px" class="layui-btn layui-btn-small layui-btn-danger delete-biaozhun">删除</button>'
+						html += '</div>'
+						html += '</div>'
+						$("#addJudgeModule").parent(".layui-input-block").parent(".layui-form-item").before(html);
+						form.render();
+						$("#tipForm_add .contants").eq(i).find(".contants-biaozhun").val(contantObj.biaozhun);
+					}else{
+						$("#tipForm_add .contants").eq(i).find(".contants-biaozhun").val(contantObj.biaozhun);
+						$("#tipForm_add .contants").eq(i).find(".contants-val").val(contantObj.val);
+						$("#tipForm_add .contants").eq(i).find(".contants-jielun").val(contantObj.jielun);
+					}
+				}
+				addScale(id);
+				form.render()
+			})
+			$(".scale_delete").on("click",function(){
+				var id = $(this).attr("data-id");
+				layer.confirm('确定删除？', function(index){
+					$.ajax({
+						url:'/procedure/module/delete?id='+id,
+				        type:'GET',
+				        success : function(data){
+				        	if(data.successful){
+				        		layer.msg("删除成功")
+				        		getData(1);
+				        	}
+				        },
+				        error : function(data){
+				        	layer.close(layer.index);//取消遮罩
+				        	layer.msg('加载失败！');
+				        }
+					})
+				    layer.close(index);
+				});  
+				
+			})
+		}
+		function addScale(id){
+			layer.open({
+	            title:'新增判断模块',
+	            type: 1,
+	            area: ['800px', '80%'],//宽高
+	            btn:['确定','关闭'],
+	            shade: 0.5,
+	            content: $('#tipForm_add'),
+	            yes: function(index, layero){
+	            	var name = $("#save_cnName").val();
+	            	if(!name){
+	    				layer.msg("中文名称不能为空！",{zIndex: layer.zIndex}); return;
+	    			}
+	            	var isFilled = true;
+	            	var contantStr = "";
+	    			$("#tipForm_add .contants").each(function(){
+		            	var contantsObj = new Object();
+	    				var biaozhun = $(this).find(".contants-biaozhun").val();
+	    				var jielun = $(this).find(".contants-jielun").val();
+	    				var val = $(this).find(".contants-val").val();
+	    				if(biaozhun == "" || jielun == ""){
+	    					layer.msg("请将判断标准填写完整！",{zIndex: layer.zIndex}); return;
+	    				}else{
+	    					contantsObj.biaozhun = biaozhun;
+	    					contantsObj.jielun = jielun;
+	    					contantsObj.val = val;
+	    				}
+	    				contantsObj = JSON.stringify(contantsObj);
+	    				if(!!contantStr){
+	    					contantStr += "-";
+	    				}
+	    				contantStr += contantsObj;
+	    			})
+	    			console.log(contantStr);
+	    			var obj = new Object()
+	    			obj.managerId = managerId
+	    			obj.name = name;
+	    			obj.content = contantStr;
+	    			obj.createTime = "";
+	  	    	    obj.updateTime = "";
+	    			if(id){
+	    				obj.id = id;
+	    				var url = "/procedure/module/update"
+	    			}else{
+	    				var url = "/procedure/module/create"
+	    			}
+	    			$.ajax({
+	    		    	url:url,
+	    		        type:'POST',
+	    		        data: $.toJSON(obj),
+	    				dataType: 'json',
+	    				contentType: 'application/json',
+	    		        success : function(data){
+	    		        	if(data.successful){
+	    		        		layer.close(layer.index)
+	    		        		layer.msg("保存成功")
+	    		        		$("#save_cnName").val("");
+	    		    			$(".addContants").remove();
+	    		        		$(".contants .layui-input").val("")
+	    		    			getData(1);
+	    		    			form.render()
+	    		        	}
+	    		        },
+	    		        error : function(data){
+	    		        	layer.msg('保存失败！');
+	    		        }
+	    		    });
+	            }
+	        });
+		}
+		//添加判断条件
+		$("#addJudgeModule").on("click",function(){
+			var html = "";
+			html += '<div class="layui-form-item contants addContants">'
+			html += '<label class="layui-form-label">判断标准</label>'
+			html += '<div class="layui-input-inline">'
+			html += '<select class="form-control contants-biaozhun" lay-filter="compare" style="width: 250px" >'
+			html += '<option value="0">无</option>';
+			html += '<option value="1">大于</option>';
+			html += '<option value="2">小于</option>';
+			html += '<option value="3">大于等于</option>';
+			html += '<option value="4">小于等于</option>';
+			html += '<option value="5">等于</option>';
+			html += '<option value="6">不等于</option>';
+			html += '<option value="7">范围</option>';
+			html += '</select>';
+			html += '</div>'
+			html += '<label class="layui-form-label" style="width: auto">值</label>'
+			html += '<div class="layui-input-inline" style="width: 60px" >'
+			html += '<input type="text" autocomplete="off" class="layui-input contants-val"/>'
+			html += '</div>'
+			html += '<label class="layui-form-label" style="width: 30px">结论</label>'
+			html += '<div class="layui-input-inline">'
+			html += '<input type="text" autocomplete="off" class="layui-input contants-jielun"/>'
+			html += '</div>'
+			html += '<div class="layui-input-inline" style="width: auto">'
+			html += '<button style="margin-top:3px" class="layui-btn layui-btn-small layui-btn-danger delete-biaozhun">删除</button>'
+			html += '</div>'
+			html += '</div>'
+			$(this).parent(".layui-input-block").parent(".layui-form-item").before(html);
+			form.render();
+			$(".delete-biaozhun").click(function(){
+				$(this).parents(".contants").remove();
+			})
+		})
+		$("#search").on("click",function(){
+			getData(1);
+		})
+	});	
+</script>
+</body>
+</html>

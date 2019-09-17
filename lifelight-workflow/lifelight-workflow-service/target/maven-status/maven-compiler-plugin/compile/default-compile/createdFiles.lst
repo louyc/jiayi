@@ -1,0 +1,7 @@
+com\lifelight\dubbo\service\impl\ProcedureMessageServiceImpl.class
+com\lifelight\dubbo\service\impl\FbProcedureVarMapServiceImpl.class
+com\lifelight\dubbo\dao\FbProcedureVarMapMapper.class
+com\lifelight\dubbo\service\impl\ProcedureServiceImpl.class
+com\lifelight\dubbo\dao\ProcedureDialogMapper.class
+com\lifelight\dubbo\dao\ProcedureMapper.class
+com\lifelight\dubbo\dao\ProcedureMessageMapper.class

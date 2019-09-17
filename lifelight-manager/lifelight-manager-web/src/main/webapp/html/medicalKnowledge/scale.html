@@ -1,0 +1,311 @@
+<!DOCTYPE html>
+<html>
+<head lang="en">
+    <meta charset="UTF-8">
+    <title>图谱量表管理</title>
+    <link rel="icon" href="../../favicon.ico" type="image/x-icon" />
+ 	<link rel="shortcut icon" href="../../favicon.ico" type="image/x-icon" />
+    <link rel="stylesheet" href="../../layui/css/layui.css"/>
+</head>
+<body>
+<div class="layui-main" style="width: auto">
+    <div class="my-tab-select">
+        <div class="layui-form">
+        <ul>
+            <li>
+                <label for="vender">中文名称：</label>
+                <input type="text" class="layui-input" id="cnName"/>
+            </li>
+            <li>
+                <label for="vender">英文名称：</label>
+                <input type="text" class="layui-input" id="enName"/>
+            </li>
+            <!-- <li>
+                <label for="vender">ID：</label>
+                <input type="text" class="layui-input" id="uid"/>
+            </li> -->
+            <li>
+                <label for="vender">父节点：</label>
+                <input type="text" class="layui-input" id="pid"/>
+            </li>
+            <!-- <li style="text-align: right">
+                <button class="layui-btn " id="search">搜索</button>
+        		<button class="layui-btn " id="add">新增</button>
+            </li> -->
+        </ul>
+        <p style="text-align: right">
+        	<button class="layui-btn " id="search">搜索</button>
+       		<button class="layui-btn " id="add">新增</button>
+       	</p>
+        </div>
+    </div>
+    <div class="layui-form">
+        <table class="layui-table" style="width: auto;min-width: 100%">
+            <colgroup>
+	            <col width="100">
+	            <col width="">
+	            <col width="200">
+	            <col width="150">
+	            <col width="150">
+	            <col width="150">
+	            <col width="150">
+	            <col width="240">
+            </colgroup>
+            <thead>
+            	<tr>
+            		<th>ID</th>
+            		<th>父节点</th>
+            		<th>中文名称</th>
+            		<th>英文名称</th>
+            		<th>单位</th>
+            		<th>创建时间</th>
+            		<th>状态</th>
+            		<th>操作</th>
+            	</tr>
+            </thead>
+            <tbody>
+            </tbody>
+        </table>
+    </div>
+    <div id="pagging"></div>
+    <div id="tipForm_add" class="layui-form" action="" style="padding-top:20px;padding-right:10px;display: none">
+		<div class="layui-form-item">
+			<label class="layui-form-label">中文名称</label>
+			<div class="layui-input-block">
+				<input type="text" id="save_cnName" name="save_cnName" autocomplete="off" class="layui-input"/>
+			</div>
+		</div>
+		<div class="layui-form-item">
+			<label class="layui-form-label">英文名称</label>
+			<div class="layui-input-block">
+				<input type="text" id="save_onlyLogo" name="save_onlyLogo" autocomplete="off" class="layui-input"/>
+			</div>
+		</div>
+		<div class="layui-form-item">
+			<label class="layui-form-label">单位</label>
+			<div class="layui-input-block">
+				<input type="text" name="save_units" id="save_units" autocomplete="off" class="layui-input"/>
+			</div>
+		</div>
+		<div class="layui-form-item">
+			<label class="layui-form-label">状态</label>
+			<div class="layui-input-block">
+				<select id="save_status" name="save_status" autocomplete="off" class="layui-input">
+					<option value="">请选择</option>
+					<option value="0">默认</option>
+					<option value="1">推送</option>
+					<option value="2">删除</option>
+				</select>
+			</div>
+		</div>
+		<div class="layui-form-item">
+			<div class="layui-input-block">
+				<button class="layui-btn" id="save">保存</button>
+			</div>
+		</div>
+	</div>
+</div>
+<script src="../../js/jquery-2.1.1.min.js"></script>
+<script type="text/javascript" src="../../js/jquery-json.js"></script>
+<script src="../../layui/layui.js" charset="utf-8"></script>
+<script src="../../js/tool.js" charset="utf-8"></script>
+<script type="text/javascript">
+	layui.use(['element', 'form', 'layer', 'jquery','laypage'], function() {
+		var $ = layui.jquery,form = layui.form(),element = layui.element();
+		var layer = layui.layer,laypage = layui.laypage,pageSum=0;
+		var parentId = "0",id="";//id用来判断是新增还是修改
+		
+		//获取当前登录人id
+		var managerId = window.utils.getCookie('managerId');
+		getData(1);
+		function getData(pageNum){
+			layer.open({type: 3,content:""})
+			var obj = new Object()
+			obj.cnName = $("#cnName").val();
+			obj.enName = $("#enName").val();
+			obj.uid = managerId;
+			obj.pid = $("#pid").val() == ""? null:$("#pid").val();
+			obj.showCount = 10;
+			obj.currentPage = pageNum;
+			$.ajax({
+		    	url:'/procedureVar/getPageProcedureVar',
+		        type:'POST',
+		        data: $.toJSON(obj),
+				dataType: 'json',
+				contentType: 'application/json',
+		        success : function(data){
+		        	pageSum = data.pagesCount;
+		        	if(data.successful){
+		        		var html="";
+		        		if(data.length<=0){
+							layer.msg("暂无数据！");
+							return;
+		        		}
+		        		$.each(data.items,function(index,item){
+		        			html+='<tr><td>'+item.id+'</td>';
+		        			var pid = item.pid != "0"?item.pid:"";
+		        			html+='<td>'+pid+'</td>';
+		        			html+='<td>'+item.cnName+'</td>';
+		        			html+='<td>'+item.identityKey+'</td>';
+		        			html+='<td>'+item.unit+'</td>';
+		        			html+='<td>'+item.createdAt+'</td>';
+		        			var statusName = ""
+		        			if(item.status == "0"){
+		        				statusName = "默认"
+		        			}else if(item.status == "1"){
+		        				statusName = "推送"
+		        			}else if(item.status == "-1"){
+		        				statusName = "删除"
+		        			}
+		        			html+='<td>'+statusName+'</td>';
+		        			html+='<td>'
+	        				html+='<button data-id="'+item.id+'" data-pid="'+item.pid+'" data-cnName="'+item.cnName+'" data-enName="'+item.enName+'" data-unit="'+item.unit+'" data-status="'+item.status+'" class="layui-btn layui-btn-small scale_edit">修改</button>'
+	        				if(item.pid == "0"){
+		        				html+='<button data-id="'+item.id+'" class="layui-btn layui-btn-small scale_addChild">添加子映射</button>'
+	        				}
+	        				html+='<button data-id="'+item.id+'" class="layui-btn layui-btn-small layui-btn-danger scale_delete">删除</button>'
+	        				html+='</td>';
+		        			html+='</tr>'
+		        		})
+		        		$("table tbody").html(html);
+		        		form.render();
+		        		layer.close(layer.index);//取消遮罩
+		        		//分页
+		        		laypage({
+					        cont: 'pagging'
+				    		, pages: pageSum
+					        , curr: data.pageNumber||1
+					        ,jump: function(obj, first){
+					        	if(!first){
+						            pageNum = obj.curr;
+						            getData(pageNum);
+					            }
+					        }
+		        		});
+		        		blind()
+		        	}else{
+		        		layer.msg(data.resultCode.message);
+		        	}
+		        },
+		        error : function(data){
+		        	layer.close(layer.index);//取消遮罩
+		        	layer.msg('加载失败！');
+		        }
+		    });
+		}
+		$("#add").on("click",function(){
+			parentId = "0";
+			addScale();
+		});
+		function blind(){
+			$(".scale_edit").on("click",function(){
+				parentId =  $(this).attr("data-pid");
+				id =  $(this).attr("data-id");
+				var cnName =  $(this).attr("data-cnName");
+				var enName =  $(this).attr("data-enName");
+				var unit =  $(this).attr("data-unit");
+				var status =  $(this).attr("data-status");
+				$("#save_cnName").val(cnName);
+				$("#save_onlyLogo").val(enName);
+				$("#save_units").val(unit);
+				$("#save_status").val(status);
+				addScale()
+				form.render()
+			})
+			$(".scale_addChild").on("click",function(){
+				parentId =  $(this).attr("data-id");
+				addScale();
+			})
+			$(".scale_delete").on("click",function(){
+				var id = $(this).attr("data-id");
+				layer.confirm('确定删除？', function(index){
+					$.ajax({
+						url:'/procedureVar/delete?id='+id,
+				        type:'GET',
+				        success : function(data){
+				        	if(data.successful){
+				        		layer.msg("删除成功")
+				        		getData(1);
+				        	}
+				        },
+				        error : function(data){
+				        	layer.close(layer.index);//取消遮罩
+				        	layer.msg('加载失败！');
+				        }
+					})
+				    layer.close(index);
+				});  
+				
+			})
+		}
+		function addScale(){
+			layer.open({
+	            title:'新增量表',
+	            type: 1,
+	            area: ['650px', '350px'],//宽高
+	            btnAlign: 'c',
+	            shade: 0.5,
+	            content: $('#tipForm_add')
+	        });
+		}
+		$("#save").on("click",function(){
+			var save_cnName = $("#save_cnName").val();
+			var save_onlyLogo = $("#save_onlyLogo").val();
+			var save_units = $("#save_units").val();
+			var save_status = $("#save_status").val();
+			if(!save_cnName){
+				layer.msg("中文名称不能为空！"); return;
+			}
+			if(!save_onlyLogo){
+				layer.msg("唯一标识不能为空！"); return;
+			}
+			if(!save_units){
+				layer.msg("单位不能为空！"); return;
+			}
+			if(!save_status){
+				layer.msg("状态不能为空！");return;
+			}
+			var obj = new Object()
+			obj.pid = parentId
+			obj.uid = managerId;
+			obj.cnName = save_cnName
+			obj.enName = save_onlyLogo
+			obj.identityKey = save_onlyLogo
+			obj.unit = save_units
+			obj.status = save_status
+			if(id){
+				obj.id = id;
+				var url = "/procedureVar/update"
+			}else{
+				var url = "/procedureVar/create"
+			}
+			$.ajax({
+		    	url:url,
+		        type:'POST',
+		        data: $.toJSON(obj),
+				dataType: 'json',
+				contentType: 'application/json',
+		        success : function(data){
+		        	if(data.successful){
+		        		layer.close(layer.index)
+		        		layer.msg("保存成功")
+		        		$("#save_cnName").val("");
+		    			$("#save_onlyLogo").val("");
+		    			$("#save_units").val("");
+		    			$("#save_status").val("");
+		    			getData(1);
+		    			form.render()
+		        	}
+		        },
+		        error : function(data){
+		        	layer.msg('保存失败！');
+		        }
+		    });
+		})
+		$("#search").on("click",function(){
+			getData(1);
+		})
+	});	
+</script>
+</body>
+</html>

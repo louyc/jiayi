@@ -1,0 +1,283 @@
+<!DOCTYPE html>
+<html>
+<head lang="en">
+    <meta charset="UTF-8">
+    <meta http-equiv="X-UA-Compatible" content="IE=edge">
+    <meta name="viewport" content="width=device-width,height=device-height,user-scalable=0,initial-scale=1.0 minimum-scale=1.0, maximum-scale=1.0">
+    <meta http-equiv="pragma" content="no-cache">
+    <meta http-equiv="Cache-Control" content="no-cache, must-revalidate">
+    <meta http-equiv="expires" content="0">
+    <title>与医生对话</title>
+    <link rel="icon" href="../../favicon.ico" type="image/x-icon" />
+ 	<link rel="shortcut icon" href="../../favicon.ico" type="image/x-icon" />
+    <link rel="stylesheet" href="../../layui/css/layui.css"/>
+    <link rel="stylesheet" href="../../css/medicalKnowledge/dialogue_wechart.css"/>
+    <style>
+    	.img{
+    		height: 80px;
+    	}
+    	.layui-form-radio{
+    		padding-right: 0!important;
+    	}
+    </style>
+</head>
+<body id="scrollId">
+<div class="layui-main" style="width: auto;height: 100vh;">
+	<div class="layui-tab-content" style="position: relative;padding: 0;height: 100%">
+	    <div class="layui-tab-item layui-show">
+	    	<div class="messageBox layui-form">
+		    	<!-- <div class="left">
+		    		<div class="dialogueBox doctor">
+		    			<p>系统消息</p>
+		    			<div class="dislogue">您好，请问有什么可以帮助您？</div>
+		    		</div>
+		    	</div>
+		    	<div class="right">
+		    		<div class="dialogueBox user">
+		    			<p>我</p>
+		    			<div class="dislogue">您好，请问有什么可以帮助您？</div>
+		    		</div>
+		    	</div> -->
+	    	</div>
+	    	<div class="userInput">
+	    		<div class="userInputBox">
+		    		<button class="layui-btn submit">提交</button>
+	    		</div>
+	    	</div>
+	    </div>
+	</div>
+</div>
+<script src="../../js/jquery-2.1.1.min.js"></script>
+<script type="text/javascript" src="../../js/jquery-json.js"></script>
+<script src="../../layui/layui.js" charset="utf-8"></script>
+<script src="../../js/tool.js" charset="utf-8"></script>
+<script type="text/javascript">
+(function(win,doc){
+    function change(){
+        doc.documentElement.style.fontSize = doc.documentElement.clientWidth * 100/375 + 'px';
+    };
+    change();
+    win.addEventListener('resize',change,false);
+    win.addEventListener('orientationchange',change,false); /* 这个是移动端设备横屏、竖屏转换时触发的事件处理函数 */
+})(window,document);
+layui.use(['element', 'form', 'layer', 'jquery','laypage'], function() {
+	var $ = layui.jquery,form = layui.form(),element = layui.element();
+	var layer = layui.layer,laypage = layui.laypage,pageSum=0;
+	
+	/* var height = $(window.parent.document).find("iframe").height();
+	var contentHeight = height - 100; */ 
+	var workflowId = window.utils.getRequestParam("id");
+	/* var managerId = window.utils.getCookie("managerId"); */
+	var managerId = localStorage.getItem('md');
+	var tempAvatarUrl = "";//上传图片路径
+	/* $(".layui-tab-content").css("height",contentHeight) */
+	/* $(".messageBox").css("height",contentHeight - 120); */
+	var procedureId = window.utils.guid();
+	var nodeDataArray =[];
+	loadding()
+	function loadding(){
+		$.ajax({
+	    	url:'/procedure/getOne?id='+workflowId,
+	        type:'GET',
+	        success : function(data){	
+	        	if(data.data){
+	        		nodeDataArray = JSON.parse(data.data.content).nodeDataArray;
+        			getBackDialogue(1,"")
+	        	}
+	        },
+	        error : function(data){
+	        	layer.msg('图谱加载失败！',{zIndex: layer.index});
+	        }
+		})
+	}
+	function getBackDialogue(key,data){
+		$.ajax({
+	    	url:'/procedure/getNextStep?id='+procedureId+'&key='+key+'&procedureId='+workflowId+'&data='+data+'&managerId='+managerId,
+	        type:'GET',
+	        success : function(data){
+        		var html = "";
+        		$(".left").removeClass("thisDialogue");
+        		if(data.successful && !data.resultCode && JSON.parse(data.data).length >0){
+        			html += '<div class="left thisDialogue">';
+	        		html += '<div class="dialogueBox doctor">';
+	        		var stepArray = JSON.parse(data.data);
+	        		$.each(stepArray,function(index,item){
+	        			if(item.propertyType=="0" || item.propertyType=="1"){
+	        				html += '<p class="dialogueTittle" data-type="'+item.propertyType+'">'+(item.text).split(",")[0]+'</p>';
+	        				html += '<div class="dialogue">'
+	        				var title = (item.text).split(",");
+	        				if(title.length > 1){
+	        					for(var i = 1;i < title.length;i++){
+		        					html += '<img class="img" src="'+title[i]+'"/><br>'
+	        					}
+	        				}
+	        			}else if(item.propertyType=="3"){
+	        				if(stepArray[0].propertyType=="0"){
+	        					if(!!item.stepData && !!item.stepData[0].childData){
+			        				html += '<input type="radio" data="'+item.stepData[0].childData.expression+'" name="node'+stepArray[0].key+'" title="'+item.stepData[0].childData.contant+'" data-key="'+item.key+'"/>'
+	        					}else{
+	        						html += '<input type="radio" data="" name="node'+stepArray[0].key+'" title="'+item.text+'" data-key="'+item.key+'"/>'
+	        					}
+	        				}else{
+	        					if(!!item.stepData && !!item.stepData[0].childData){
+		        					html += '<input type="checkbox" lay-skin="primary" data="'+item.stepData[0].childData.expression+'" name="node'+stepArray[0].key+'" title="'+item.stepData[0].childData.contant+'" data-key="'+item.key+'"/>'
+	        					}else{
+	        						html += '<input type="checkbox" lay-skin="primary" data="" name="node'+stepArray[0].key+'" title="'+item.text+'" data-key="'+item.key+'"/>'
+	        					}
+	        				}
+	        			}else if(item.propertyType=="5"){
+	        				html += '<p class="dialogueTittle" data-type="'+item.propertyType+'">'+item.text+'</p>';
+	        				html += '<div class="dialogue">'
+	        				if(!!item.stepData && !!item.stepData[0].childData){
+	        					if(item.stepData[0].childData.inputType == "0"){
+		        					var expression = !item.stepData[0].childData.expression?"":item.stepData[0].childData.expression
+		        					html += '<input data-key="'+item.key+'" value="'+expression+'" class="layui-input" type="number" class="userInputText"/>'
+		        				}else if(item.stepData[0].childData.inputType == "4" || item.stepData[0].childData.inputType == "5"){
+		        					html += '<input data-key="'+item.key+'" class="layui-input" type="text" onclick="layui.laydate({elem: this, istime: true, format: \'YYYY-MM-DD hh:mm:ss\'})">'
+		        				}else if(item.stepData[0].childData.inputType == "3"){
+		        					var expression = !item.stepData[0].childData.expression?"":item.stepData[0].childData.expression
+		        					html += '<input data-key="'+item.key+'" value="'+expression+'" class="layui-input" type="text">'
+		        				}else{
+		        					html += '<form enctype="multipart/form-data" method="post">'
+		        					html += '<input data-key="'+item.key+'" class="layui-input userInputFile" type="file" />'
+		        					html += '</form>'
+		        				}
+	        				}else{
+	        					html += '<input data-key="'+item.key+'" class="layui-input" type="number" class="userInputText"/>'
+	        				}
+	        				
+	        			}
+	        		})
+        			html += '</div></div></div>';
+        		}else if(!!data.resultCode.code && data.resultCode.code == "NODE_NULL"){
+        			if(JSON.parse(data.data).length >0){
+        				var content = "";
+        				for(var i = 0;i < JSON.parse(data.data).length;i++){
+        					if(content){
+        						content +="<br>";
+        					}
+        					content +=JSON.parse(data.data)[i].content
+        					if(!!content.split("<img")[1]){
+	        					var content2 = ' style="max-height: 150px;"'+content.split("<img")[1]
+	        					var content1 = content.split("<img")[0] + '<img';
+        						var content3 =  content1+""+content2;
+        						content=content3;
+        					}
+        				}
+        				html += '<div class="left thisDialogue">';
+		        		html += '<div class="dialogueBox doctor">'
+	        			html += '<p class="dialogueTittle">医生留言</p>'
+	        			html += '<div class="dialogue">'+content+'</div></div></div>';
+        			}
+        			html += '<div class="left thisDialogue">';
+	        		html += '<div class="dialogueBox doctor">'
+        			html += '<p class="dialogueTittle">医生留言</p>'
+        			html += '<div class="dialogue">流程结束</div></div></div>';
+	        		$(".userInput").remove();
+        		}else{
+        			html += '<div class="left thisDialogue">';
+	        		html += '<div class="dialogueBox doctor">'
+        			html += '<p class="dialogueTittle">医生留言</p>'
+        			html += '<div class="dialogue">流程结束</div></div></div>';
+	        		$(".userInput").remove();
+        		}
+       			$(".messageBox").append(html);
+       			var div = document.getElementById("scrollId");
+       			setTimeout(() => {
+	       			div.scrollTop = div.scrollHeight;
+				}, 5);
+       			$(".thisDialogue .userInputFile").change(function(e) {
+       				var fileUrl = $.trim($(this).val());
+       				imgUpload(this, function(data) {
+    					if(data.successful) {
+    						tempAvatarUrl = data.data;
+    					} else {
+    						layer.msg("图片上传到服务器失败！");
+    					}
+    				}, function(error) {
+    					layer.msg("图片上传到服务器失败");
+    					console.log(error);
+    				});
+       			})
+       			// 上传图片
+				function imgUpload(that, cb, errFn) {
+					var formData = new FormData();
+					for(var i = 0, file; file = that.files[i]; i++) {
+						formData.append('file',file);
+					}
+					$.ajax({
+						type: "POST",
+						url: "/file/upload",
+						data: formData,
+						async: false,
+						cache: false,
+						processData: false,
+						contentType: false,
+						dataType: "json",
+						success: function(data) {
+							cb(data);
+						},
+						error: function(error) {
+							errFn(error);
+						}
+					});
+				};
+       			form.render();
+	        },
+	        error : function(data){
+	        	layer.msg('图谱加载失败！',{zIndex: layer.index});
+	        }
+		})
+	}
+	/*绑定回车*/
+    $(document).keydown(function(e){
+    	var e = e || window.event || arguments.callee.caller.arguments[0];
+    	if(e && e.keyCode==13){
+    		$(".submit").click();
+    	}
+    });
+	$(".submit").on("click",function(){
+		var dialogue = $("#userInputTextarea").val();
+		var propertyType = $(".thisDialogue .dialogueTittle").attr("data-type");
+		if(!propertyType){
+			$(".submit").remove();
+			layer.msg("流程已结束！");
+			return;
+		}
+		var key = "";
+		var data = "";
+		if(propertyType == "0" || propertyType == "1"){
+			$(".thisDialogue .dialogue input").each(function(index,item){
+				if($(item).next(".layui-unselect").attr("class").indexOf("layui-form-radioed") >= 0 || $(item).next(".layui-unselect").attr("class").indexOf("layui-form-checked") >= 0 ){
+					if(key){
+						key += ","
+					}
+					key +=$(item).attr("data-key")
+					if(data){
+						data += ","
+					}
+					data +=$(item).attr("data")
+				}
+			})
+			if(!key){
+				layer.msg("请选择"+$(".thisDialogue .dialogueTittle").text());
+				return;
+			}
+		}else{
+			if($(".thisDialogue .dialogue input").attr("type") == "file"){
+				data = tempAvatarUrl
+			}else{
+				data = $(".thisDialogue .dialogue input").val();
+			}
+			key = $(".thisDialogue .dialogue input").attr("data-key");
+			if(!key){
+				layer.msg("请输入"+$(".thisDialogue .dialogueTittle").text());
+				return;
+			}
+		}
+		getBackDialogue(key,data)
+	})
+})
+</script>
+</body>
+</html>

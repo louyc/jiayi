@@ -1,0 +1,79 @@
+<!DOCTYPE html>
+<html>
+<head lang="en">
+    <meta charset="UTF-8">
+    <title>后台管理系统</title>
+    <link rel="stylesheet" href="../layui/css/layui.css"/>
+</head>
+<body>
+<div class="layui-main" style="width: auto">
+    <div class="my-tab-select my-tab-select2">
+        <ul>
+            <li>
+                <label for="brandName">品牌名称：</label>
+                <input type="text" class="layui-input" id="brandName"/>
+            </li>
+            <li>
+                <label for="venderName">厂商：</label>
+                <input type="text" class="layui-input" id="venderName"/>
+            </li>
+        </ul>
+        <p>
+            <button class="layui-btn ">搜索</button>
+            <button class="layui-btn layui-btn-normal">保存</button>
+        </p>
+    </div>
+    <div class="layui-form">
+        <table class="layui-table" style="width: auto;min-width: 100%">
+            <colgroup>
+                <col width="50">
+                <col width="">
+                <col width="">
+                <col width="200">
+                <col>
+            </colgroup>
+            <thead>
+            <tr>
+                <th><input type="checkbox" name="" lay-skin="primary" lay-filter="allChoose"><div class="layui-unselect layui-form-checkbox" lay-skin="primary"><i class="layui-icon"></i></div></th>
+                <th>品牌名称</th>
+                <th>品牌描述</th>
+                <th>厂商</th>
+            </tr>
+            </thead>
+            <tbody>
+            <tr>
+                <td><input type="checkbox" name="" lay-skin="primary"><div class="layui-unselect layui-form-checkbox" lay-skin="primary"><i class="layui-icon"></i></div></td>
+                <td>贤心</td>
+                <td>汉族</td>
+                <td>1989-10-14</td>
+            </tr>
+            </tbody>
+        </table>
+    </div>
+    <div id="pagging"></div>
+</div>
+<script src="../layui/layui.js" charset="utf-8"></script>
+<script>
+    window.onload=function(){
+        layui.use(['form','laypage', 'layer'], function(){
+            var $ = layui.jquery, form = layui.form();
+            var laypage = layui.laypage,layer = layui.layer;
+            //全选
+            form.on('checkbox(allChoose)', function(data){
+                var child = $(data.elem).parents('table').find('tbody input[type="checkbox"]');
+                child.each(function(index, item){
+                    item.checked = data.elem.checked;
+                });
+                form.render('checkbox');
+            });
+            laypage({
+                cont: 'pagging'
+                ,pages: 100
+                ,skip: true
+            });
+
+        });
+    }
+</script>
+</body>
+</html>

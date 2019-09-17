@@ -1,0 +1,241 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <title>消息通知</title>
+    <meta name="renderer" content="webkit">
+    <meta http-equiv="X-UA-Compatible" content="IE=edge,chrome=1">
+    <meta name="viewport" content="width=device-width, initial-scale=1, maximum-scale=1">
+    <link rel="stylesheet" href="../../layui/css/layui.css" media="all">
+    <style>
+        .layui-tab-content{
+        	margin-top:10px;
+        }
+        .layui-this h2{
+            font-size: 14px;
+        }
+		 .layui-message{
+        	width:90%;
+        }
+        .layui-list{
+        	width:100%;
+        	position: relative;
+        	height: 60px;
+        }
+        .userMessage{
+        	overflow: hidden;
+        	transition: all 0.5s ease;
+        	margin-top: 15px;
+        	background-color:#eee;
+        	border-radius: 5px;
+        	height: auto;
+        	padding-top: 30px;
+        }
+        .userMessage .unReadNum{
+        	position: absolute;
+        	right: 15px;
+        	top: 22px;
+        	display: inline-block;
+        	height: 16px;
+        	width: 16px;
+        	background-color: #FF5722;
+        	color: #fff;
+        	border-radius: 8px;
+        	font-size: 12px;
+        	text-align: center;
+        	line-height: 16px;
+        	font-style: normal;
+        }
+        .userMessage .time{
+        	font-size: 14px;
+        	padding-left: 15px;
+        	opacity: .7;
+        }
+        .userMessage img{
+        	height: 150px;
+        	margin-left: 45px;
+        }
+        .layui-list p{
+        	margin-top: 30px;
+            line-height: 15px;
+            width:100%;
+            font-size: 14px;
+        	padding:0 45px;
+        	box-sizing: border-box;
+        	/* transition: all 0.4s ease-out; */
+        }
+       .tixing{
+       		font-size:14px;
+       }
+       .userMessage .userName{
+       		position: absolute;
+        	right: 35px;
+        	top: 20px;
+        	display: inline-block;
+        	height: 16px;
+       }
+    </style>
+</head>
+<body>
+<div class="layui-main">
+    <div class="layui-tab layui-tab-brief info-box" lay-filter="docDemoTabBrief">
+            <div class="layui-tab-item layui-show tab-first">
+              	<div class="layui-list userMessage">
+           		</div>
+            </div>
+    </div>
+    <div class="layui-form">
+	    <div class="layui-tab-item layui-show ">
+	    	<button class="layui-btn layui-btn-normal" onclick="javaScript:history.go(-1)" id="goBack">返回</button>
+	    </div>
+    </div>
+</div>
+<script src="../../layui/layui.js" charset="utf-8"></script>
+<script src="../../js/jquery-2.1.1.min.js"></script>
+<script type="text/javascript" src="../../js/jquery-json.js"></script>
+<script src="../../js/tool.js"></script>
+<script src="../../js/template.js"></script>
+<script>
+window.onload=function(){
+	layui.use(['element','layer','jquery','form','laydate','laypage'],function(){
+		var $=layui.jquery,layer = layui.layer, laydate = layui.laydate,form = layui.form(),element = layui.element();
+		var laypage = layui.laypage;
+		var pageSum = "";
+        //消息列表
+        var cookieVal=window.utils.getCookie("user_id");
+        var messageFrom = window.utils.getRequestParam("messageFrom");
+        getMessage(1)
+        function getMessage(pageNum){
+        	var _obj=new Object();
+        	_obj.messageFrom=messageFrom;
+        	_obj.messageTo=cookieVal;
+        	_obj.showCount=10;
+        	_obj.currentPage=pageNum;
+        	_obj.type=3;
+        	_obj.status=0;
+        	_obj.equipment=2;
+        	var dataJson=$.toJSON(_obj);
+        	$.ajax({
+        		url:'/message/getPageMessages',
+        		type:'POST',
+        		data:dataJson,
+        		dataType:"json",
+        		contentType: "application/json",
+        		success:function(data){
+        			if(data.successful){
+        				pageSum = data.pagesCount;
+        				var str='';
+        				var datas=data.items;
+       					str+='<div class="layui-list userMessage">';
+        				$.each(datas,function(index,item){
+        					var content = item.content;
+        					if(!!content.split("<img")[1]){
+	        					var content2 = ' style="max-height: 150px;"'+content.split("<img")[1]
+	        					var content1 = content.split("<img")[0] + '<img';
+        						var content3 =  content1+""+content2;
+        						str+=content3;
+        					}else{
+        						str+=content;
+        					}
+        					var messageFromName = (!item.messageFromName?"":item.messageFromName)
+        					str += '<p style="margin-bottom: 15px"><span class="time" style="">'+item.createTime+'</span></p>';
+        				})
+       					str += '<div style="margin-bottom: 15px;text-align: right;padding-right: 45px">';
+       					str += '<button userId="'+messageFrom+'" class="layui-btn layui-btn-small copyUsers">回复</button>';
+       					str += '</div></div>';
+        				$(".tab-first").html(str);
+        				readOverMessage()
+        				blind();
+        			}
+        		}
+        	})
+        }
+    	function blind(){
+            $(".copyUsers").on("click",function(){
+            	var userId = $(this).attr("userId");
+            	layer.open({
+            		type:2
+            		,title:'消息推送'
+        			,area: ['500px','500px']
+            		,content: '/html/data/ueEditMessage.html'
+        	    	,btn: ['确定','关闭'] //按钮
+            		,yes: function(index){
+            			var UE = $(".layui-layer-iframe").find("iframe")[0].contentWindow.UE;
+            			var goodsDesc = UE.getEditor('container').getContent();
+            			var imgAry = "";
+            			var isGo = true;
+            			var doctorId = window.utils.getCookie("managerId");
+            			$(goodsDesc).find('img').each(function(){
+           	             	var src = $(this).attr('src');
+           	             	imgAry += src + ",";
+                        });
+                        $.ajax({
+                			url:'/message/sendDoctorMessage?equipment=2&doctorId='+doctorId+'&toUserId='+userId+'&context='+goodsDesc,
+                			type: 'POST',
+            	        	success:function(res){
+            	        		if(res.successful && res.resultCode.code == 'SUCCESS'){
+            	        			layer.msg("消息推送成功！",{time: 2000,zIndex: layer.zIndex},function(){
+            	        				layer.closeAll();
+            	        			});
+            	        		}else{
+            	        			isGo = false;
+            	        			layer.msg("消息推送失败！",{time: 2000,zIndex: layer.zIndex});
+            	        			return;
+            	        		}
+           	        		},
+           	        		error:function(err){
+           	        			isGo = false;
+           	        			layer.msg("消息推送失败！",{time: 2000,zIndex: layer.zIndex});
+           	        			return;
+           	        		}
+             			})
+                 		if(imgAry != "" && imgAry.length > 0 ){
+                 			if(isGo){
+                 				$.ajax({
+               	        			url:'/file/upFile',
+               	        			type: 'POST',
+               	        			async:false,
+               	    				data: {files:imgAry.substring(0,imgAry.length-1)},
+               	    	        	success:function(res){
+               	    	        		if(res.successful && res.resultCode.code == 'SUCCESS'){
+               	    	        			
+               	    	        		}else{
+               	    	        			layer.msg('图片'+res.resultCode.message,{time: 2000,zIndex: layer.zIndex})
+               	    	        			return;
+               	    	        		}
+                   	        		},
+                   	        		error:function(err){
+                   	        			layer.msg('图片'+res.resultCode.message,{time: 2000,zIndex: layer.zIndex})
+                   	        			return;
+                   	        		}
+                     			});
+                 			}
+                 		}
+            		}
+            		,zIndex: layer.zIndex //重点1
+        	        ,success: function(layero){
+        	        	
+        	        }
+            	})
+            });
+    	}
+    	function readOverMessage(){
+	    	var obj=new Object();
+	    	obj.userId=cookieVal;
+	    	obj.messageFromId=messageFrom;
+	    	obj.type=3;
+	    	$.ajax({
+	    		url:'/message/readOverMessage',
+	    		type:'POST',
+	    		data: obj,
+	    		dataType:"json",
+	    		success:function(data){
+	    			
+	    		}
+		    })
+    	}
+    })
+}
+</script>
+</body>
+</html>  

@@ -1,0 +1,76 @@
+.messageBox{
+	/* overflow-y:scroll; */
+	box-sizing: content-box;
+	padding-bottom: 80px;
+}
+.dialogueBox{
+	border: 1px solid #ccc;
+	display: inline-block;
+	width: auto;
+    position: relative;
+	max-width: calc(100% - 60px);
+}
+.dialogueBox:after{
+	content: '';
+    position: absolute;
+    top: 13px;
+    width: 0;
+    height: 0;
+    border-style: solid dashed dashed;
+    border-color: #ccc transparent transparent;
+    overflow: hidden;
+    border-width: 15px;
+}
+.doctor{
+	left: 30px
+}
+.doctor:after{
+    right: -10px;
+    left: -15px;
+}
+.user{
+	/* right: 40px */
+	margin-left: calc(100% - 335px)
+}
+.user:after{
+	right: auto;
+    right: -15px;
+}
+.dialogueBox{
+	margin-top: 10px;
+}
+.dialogueBox p.dialogueTittle{
+	background: #ccc;
+    /* text-indent: 15px;
+    height: 30px; */
+    line-height: 30px;
+    padding: 0 15px;
+}
+.dialogueBox .dialogue{
+    padding:10px 15px;
+}
+.userInput{
+	height: 40px;
+	position: fixed;
+	bottom: 0;
+	width: 100%;
+	padding: 0;
+	box-sizing: border-box;
+	margin-bottom: 10px;
+}
+.userInputBox{
+    height: 100%;
+    background: #ffffff;
+    border-radius: 5px;
+    overflow: hidden;
+    width: 80%;
+    margin-left: 10%;
+}
+.userInputBox .submit{
+	height: 100%;
+	float: right;
+	width: 139px;
+	font-size: 14px;
+	line-height: 30px;
+	width: 100%;
+}

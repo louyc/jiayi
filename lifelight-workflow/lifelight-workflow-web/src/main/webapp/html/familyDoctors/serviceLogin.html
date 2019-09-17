@@ -1,0 +1,139 @@
+<!DOCTYPE html>
+<html>
+<head lang="en">
+    <meta charset="UTF-8">
+    <title>签约服务信息登记</title>
+    <link rel="stylesheet" href="/layui/css/layui.css"/>
+    <link rel="stylesheet" href="/css/listStyle.css"/>
+    <style>
+    	.area dl{width: 100%}
+    </style>
+</head>
+<body>
+<div class="layui-main layui-form" style="width: auto;min-width: 100%">
+	<div class="my-tab-select">
+	    <ul class="search-box layui-form">
+	    	<li>
+	            <label>姓名：</label>
+		       	<div>
+			      	<input type="text" autocomplete="off" class="layui-input" id="name">
+			    </div>
+		    </li>
+	    	<li>
+	            <label>档案编号：</label>
+		       	<div>
+			      	<input type="text" autocomplete="off" class="layui-input" id="documentId">
+			    </div>
+		    </li>
+		    <li style="vertical-align: top;">
+		    	<div>
+		    		<label class="layui-form-label">是否签约：</label>
+	            	<select name="isSign" id="isSign">
+	            		<option value="">全部</option>
+	            		<option value="1">签约</option>
+	            		<option value="2">未签约</option>
+		            </select>
+	            </div>
+	    	</li>
+	    	<li style="vertical-align: top;">
+	            <label>身份证号：</label>
+		       	<div>
+			      	<input type="text" autocomplete="off" class="layui-input" id="cardNum">
+			    </div>
+		    </li>
+    		<li class="my-tab-li" style="width:66%;">
+		       	<div class="layui-form-item">
+		    		<label class="layui-form-label">行政区别：</label>
+		    		<div class="layui-input-inline area">
+			    		<select name="province" id="province" lay-filter="province">
+		            		<option value="">请选择省份</option>
+			            </select>
+		    		</div>
+		    		<div class="layui-input-inline area">
+			    		<select name="city" id="city" lay-filter="city"> 
+							<option value="">请选择城市</option>
+						</select>
+		    		</div>
+		    		<div class="layui-input-inline area">
+			    		<select name="town" id="town"> 
+							<option value="">请选择乡/镇</option>
+						</select>
+		    		</div>
+	            </div>
+            </li>
+            <!-- <li style="vertical-align: top;">
+		    	<div>
+		    		<label class="layui-form-label">管辖区域：</label>
+	            	<select name="order-type" id="order-type">
+	            		<option value="all">全部</option>
+	            		<option value="0">商品订单</option>
+	            		<option value="1">服务订单</option>
+		            </select>
+	            </div>
+	    	</li> -->
+	    	<li class="my-timer-li">
+	            <label>签约日期：</label>
+		       	<div class="layui-form-item ">
+			       	<div class="layui-input-inline" style="width: 100px;">
+			           <input type="text" name="price_min" autocomplete="off" class="layui-input" id="signStartTime">
+			      	</div>
+			      	<div class="layui-form-mid">-</div>
+			      	<div class="layui-input-inline" style="width: 100px;">
+			        	<input type="text" name="price_max" autocomplete="off" class="layui-input" id="signEndTime">
+			      	</div>
+			    </div>
+		    </li>
+		    <li></li>
+		    <li style="vertical-align: top;">
+		    	<p>
+		            <button class="layui-btn" id="search">搜索</button>
+		       		<a class="layui-btn layui-btn-normal" href="addFamilyDoctors.html">个人信息登记</a>
+		        </p>
+		    </li>
+    	</ul>
+        
+    </div>
+    <div class="layui-tab layui-tab-brief" style="margin-top: 0" lay-filter="docDemoTabBrief">
+		<ul class="layui-tab-title"></ul>
+	</div>
+    <div class="layui-form">
+        <table class="layui-table list-table">
+            <colgroup>
+                <col width="140">
+                <col width="80">
+                <col width="140">
+                <col width="140">
+                <col width="">
+                <col width="120">
+                <col width="100">
+                <col width="100">
+                <col width="100">
+                <col width="100">
+                <col width="200">
+            </colgroup>
+            <thead>
+            <tr>
+                <th>姓名</th>
+                <th>性别</th>
+                <th>健康卡号</th>
+                <th>身份证号</th>
+                <th>居住地址</th>
+                <th>家庭电话</th>
+                <th>重点人群</th>
+                <th>建档人员</th>
+                <th>建档日期</th>
+                <th>是否签约</th>
+                <th>操作</th>
+            </tr>
+            </thead>
+            <tbody></tbody>
+        </table>
+    </div>
+    <div id="pagging"></div>
+</div>
+<script src="/layui/layui.js" charset="utf-8"></script>
+<script src="/js/jquery-2.1.1.min.js"></script>
+<script src="/js/jquery-json.js"></script>
+<script src="/js/familyDoctors/serviceLogin.js"></script>
+</body>
+</html>

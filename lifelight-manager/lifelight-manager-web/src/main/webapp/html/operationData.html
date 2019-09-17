@@ -1,0 +1,367 @@
+ <!DOCTYPE html>
+<html lang="en" style="height: 95%;">
+<head>
+    <meta charset="UTF-8">
+    <title>订单统计</title>
+    <meta name="renderer" content="webkit">
+    <meta http-equiv="X-UA-Compatible" content="IE=edge,chrome=1">
+    <meta name="viewport" content="width=device-width, initial-scale=1, maximum-scale=1">
+    <meta name="viewport" content="width=device-width,initial-scale=1">
+    <meta http-equiv="Content-Type" content="text/html; charset=gbk" />
+    <link rel="stylesheet" href="../../layui/css/layui.css" media="all">
+    <link rel="stylesheet" href="../../css/operationData.css" media="all">
+    <style>
+    	.layui-form .my-tab-select ul li.pieTitle label{width: 100%;text-align: center;font-size: 18px;}
+    	.layui-form .my-tab-select ul li.pieTitle label span{font-size: 26px;font-weight:blod;margin-left: 12px;}
+    </style>
+</head>
+<body style="height: 100%;">
+<div class="layui-main"  style="width: auto">
+	<div class="layui-form">
+		<div class="layui-tab layui-tab-brief " lay-filter="docDemoTabBrief">
+	        <ul class="layui-tab-title tab-title user-tab">
+	            <li type="6" class="layui-this">海淀区家庭医生统计</li>
+	            <li type="5">待办统计</li>
+	            <li type="0">订单统计</li>
+	            <li type="1">用户分析</li>
+	            <li type="2">注册统计</li>
+	            <li type="3">转化率</li>
+	            <li type="4">推广码统计</li>
+	        </ul>
+	        
+	        <div class="layui-tab-content">
+	        	<!-- 履约统计 -->
+	        	<div class="layui-tab-item layui-show" id="lytj">
+	                 <div class="layui-form-item my-tab-select">
+	                 	<ul style="margin:1% 0;">
+				            <li class="pieTitle">
+				                <label for="" id="qianyuePeople">签约人:<span></span></label>
+				            </li>
+				            <li class="pieTitle">
+				                <label for="" id="lvyuePeople">履约人:<span></span></label>
+				            </li>
+				            <li class="pieTitle">
+				                <label for="" id="lvyueRate">履约率:<span></span></label>
+				            </li>
+				        </ul>
+				        <div id="performanceTable" class="performanceTable" style="padding-bottom:25px;">
+				        	<p style="font-weight:600;color:#000;text-align:center;">海淀区家庭医生服务履约率</p>
+				        	<table style="width: 60%;max-width: 80%;text-align:center;margin:0 auto;border-bottom:2px solid #000;">
+					            <thead style="border-top:2px solid #000;border-bottom:1px solid #000;font-weight:600;color:#000;">
+					            	<tr>
+					            		<th>机构</th>
+					            		<th>签约人数</th>
+					            		<th>履约人数</th>
+					            		<th>履约率(%)</th>
+					            	</tr>
+					            </thead>
+					            <tbody>
+					            </tbody>
+					        </table>
+				        </div>
+				        <div id="pieCharts"></div>
+				        <div id="qyUserCharts" style="margin-top: 20px"></div>
+				        <div id="lyUserCharts" style="margin-top: 20px"></div>
+	                 </div>
+                </div>
+	        	<!-- 待办统计 -->
+	        	<div class="layui-tab-item" id="dbtj">
+	                 <div class="layui-form-item my-tab-select">
+	                 	<div class="quan">
+	                        <svg id="svg1" style="cursor: pointer;" onclick="window.location.href='userManager.html'"></svg>
+	                        <p>用户管理</p>
+	                    </div>
+	                    <div class="quan">
+	                        <svg id="svg2" style="cursor: pointer;" onclick="window.location.href='commodity/serviceAudit.html'"></svg>
+	                        <p>服务审核</p>
+	                    </div>
+	                    <div class="quan">
+	                        <svg id="svg3" style="cursor: pointer;" onclick="window.location.href='theorder/orderManagement.html'"></svg>
+	                        <p>今日新增订单数</p>
+	                    </div>
+	                 </div>
+                </div>
+	        		 <!-- 订单统计 -->
+	        		<div class="layui-tab-item">
+		                 <div class="layui-form-item my-tab-select">
+					        <ul>
+					            <li>
+					                <label for="deviceName">开始时间:</label>
+					                 <input type="text" name="date" id="orderBeginTime" autocomplete="off" class="layui-input" onclick="layui.laydate({elem: this})">
+					            </li>
+					            <li>
+					                <label for="vender">结束时间:</label>
+					                 <input type="text" name="date" id="orderOverTime" autocomplete="off" class="layui-input" onclick="layui.laydate({elem: this})">
+					            </li>
+					            <li>
+					                <label for="brand">订单类型：</label>
+					                 <select name="orderSelect" lay-filter="orderSelect" id="orderSelect">
+								        <option value="all">全部</option>
+								        <option value="1">服务订单</option>
+								        <option value="0">实物订单</option>
+								      </select>
+					            </li>
+					        </ul>
+					        <p>
+					            <button class="layui-btn  search">搜索</button>
+					        </p>
+						</div>
+						<table class="layui-orderTable layui-table">
+				            <colgroup>
+				                 <col width="300">
+				                <col width="300">
+				                <col width="300">
+				                <col>
+				            </colgroup>
+				            <thead>
+				            <tr>
+				                <th>日期</th>
+				                <th>订单总数</th>
+				                <th>订单金额</th>
+				            </tr>
+				            </thead>
+				            <tbody>
+				            	
+				            </tbody>
+				        </table>						
+					   <ul class="orderul"><li class="count">总计:</li> <li class="orderCount"><p></p></li> <li class="sellCount"><p></p></li></ul>
+						<div id="pageTag" style="text-align:center;"></div>
+		            </div>
+		            
+					<!-- 用户分析 -->
+		            <div class="layui-tab-item">
+		                <div class="layui-form-item  my-tab-select">
+						    <ul>
+					            <li>
+					                <label for="deviceName">开始时间:</label>
+					                 <input type="text" name="date" id="beginTime" autocomplete="off" class="layui-input" onclick="layui.laydate({elem: this})">
+					            </li>
+					            <li>
+					                <label for="vender">结束时间:</label>
+					                 <input type="text" name="date" id="overTime" autocomplete="off" class="layui-input" onclick="layui.laydate({elem: this})">
+					            </li>
+					        </ul>
+					        <p>
+					            <button class="layui-btn" id="userSearch">搜索</button>
+					        </p>
+						</div>
+						<div class="layui-tab layui-tab-brief layui-user">
+							<ul class="layui-tab-title userTab">
+					            <li class="layui-this" type="0"><h2>性别</h2></li>
+					            <li type="1"><h2>区域</h2></li>
+					            <li type="2"><h2>年龄</h2></li>
+					        </ul>
+					        <div class="layui-tab-content">
+					        	<!-- 性别 -->
+					        	<div class="layui-tab-item layui-show">
+					        		<div id="first-container"></div>
+					        	</div>
+					        	
+					        	<div class="layui-tab-item">
+					        		<div id="second-container"></div>
+					        	</div>
+					        	<!-- 年龄 -->
+					        	<div class="layui-tab-item" >
+					        		<div id="third-container"></div>
+					        	</div>
+					        </div>
+						</div>
+		            </div>
+					<!-- 注册统计 -->
+		             <div class="layui-tab-item">
+		             		<div class="layui-form-item my-tab-select">
+							    <ul>
+						            <li>
+						                <label for="deviceName">开始时间:</label>
+						                 <input type="text" name="date" id="enrollBeginTime" autocomplete="off" class="layui-input"  onclick="layui.laydate({elem: this})">
+						            </li>
+						            <li>
+						                <label for="vender">结束时间:</label>
+						                 <input type="text" name="date" id="endOverTime" autocomplete="off" class="layui-input" onclick="layui.laydate({elem: this})">
+						            </li>
+						        </ul>
+						        <p>
+						            <button class="layui-btn"  id="enrollSearch">搜索</button>
+						        </p>
+							</div>
+				        <table class="layui-table  enroll">
+				            <colgroup>
+				                 <col width="300">
+				                <col width="300">
+				                <col width="300">
+				                <col>
+				            </colgroup>
+				            <thead>
+				            <tr>
+				                <th>日期</th>
+				                <th>注册数</th>
+				                <th>明细</th>
+				            </tr>
+				            </thead>
+				            <tbody>
+				            	<tr>
+				            		
+				            	</tr>
+				            </tbody>
+				        </table>
+				        <ul class="orderul"><li class="count">总计</li><li class="orderCount" id="orderCountss"></li><li></li></ul>
+						<div id="pageTwo" style="text-align:center;"></div>
+		             	
+					</div>
+		            <!-- 转化率 -->	
+		            <div class="layui-tab-item">
+		                 <div class="layui-form-item   my-tab-select">
+						     <ul>
+					            <li>
+					                <label for="deviceName">开始时间:</label>
+					                 <input type="text" name="date" id="date" autocomplete="off" class="layui-input changeStartTime" onclick="layui.laydate({elem: this})">
+					            </li>
+					            <li>
+					                <label for="vender">结束时间:</label>
+					                 <input type="text" name="date" id="date" autocomplete="off" class="layui-input changeEndTime" onclick="layui.laydate({elem: this})">
+					            </li>
+					        </ul>
+					        <p>
+					            <button class="layui-btn" id="changeSearch">搜索</button>
+					        </p>
+						</div>
+						<table class="layui-table change_Table">
+				            <colgroup>
+				                 <col width="300">
+				                <col width="300">
+				                <col width="300">
+				                <col width="300">
+				                <col>
+				            </colgroup>
+				            <thead>
+				            <tr>
+				                <th>日期</th>
+				                <th>访客数</th>
+				                <th>购买用户数</th>
+				                <th>转化率</th>
+				            </tr>
+				            </thead>
+				            <tbody>
+				            	
+				            </tbody>
+				        </table>
+				        <ul class="changeul"><li class="count">总计:</li> <li class="orderCount visitorCount"></li> <li class="sellCount purchaserCount"></li><li class="sellCount conversionRate"></li></ul>
+						<div id="pageThree" style="text-align:center;"></div>
+		            </div>
+		              <!-- 推广码统计 -->
+		            <div class="layui-tab-item">
+					     <div class="layui-form-item">
+					     		 <ul class="pushMan">
+						            <li>
+						                <label for="deviceName">购买时间:</label>
+						                 <input type="text" name="date" id="payStartTime"  class="layui-input" onclick="layui.laydate({elem: this})">
+						                 <span>-</span>
+						                <input type="text" name="date" id="payEndTime"  class="layui-input" onclick="layui.laydate({elem: this})">
+						            </li>
+						            <li>
+						                <label for="vender">结束时间:</label>
+						                 <input type="text" name="date" id="registStartTime"  class="layui-input" onclick="layui.laydate({elem: this})">
+						                 <span>-</span>
+						                 <input type="text" name="date" id="registEndTime"  class="layui-input" onclick="layui.laydate({elem: this})">
+						            </li>
+						            <li>
+						                <label for="brand">专家机构：</label>
+						                <input type="text" name="title" lay-verify="title" autocomplete="off" placeholder="请输入专家机构" class="layui-input" id="organization">
+						            </li>
+						            <li>
+						                <label for="brand">推广人</label>
+						                <input type="text" name="title" lay-verify="title" autocomplete="off" placeholder="请输入推广人" class="layui-input" id="promoter">
+						            </li>
+						        </ul>
+						        <p  class="buts">
+							           <button class="layui-btn" id="codeSearch">搜索</button>
+							           <a class="layui-btn layui-btn-normal" href="javascript:;" id="export">导出</a>
+							     </p> 
+					     </div>
+				        <table class="layui-table codeTable">
+				            <colgroup>
+				                <col width="150">
+				                <col width="150">
+				                <col width="150">
+				                <col width="150">
+				                <col width="150">
+				                <col width="150">
+				                <col width="150">
+				                <col width="150">
+				                <col>
+				            </colgroup>
+				            <thead>
+				            <tr>
+				               
+				                <th>注册用户</th>
+				                <th>推广人</th>
+				                <th>专家机构</th>
+				                <th>注册时间</th>
+				                <th>订单号</th>
+				                <th>购买时间</th>
+				                <th>所购服务或商品</th>
+				                <th>订单金额</th>
+				            </tr>
+				            </thead>
+				            <tbody>
+				            	<tr>
+				            		
+				            	</tr>
+				            </tbody>
+				        </table> 
+				        <ul class="codeul">
+				        	<li class="count">总计</li> 
+				        	<li class="promotionName"></li> 
+				        	<li class="doctorName">---</li> 
+				        	<li>---</li>
+				        	<li>---</li>
+				        	<li>---</li>
+				        	<li>---</li>
+				        	<li class="Count orderPrice" stype="border-right:none"></li>
+						</ul>
+						<div id="pageFour" style="text-align:center;"></div> 
+					</div>
+	            </div>
+	            </div>
+           
+		        <div id="goods-info-box" class="info-box">
+				        <table class="layui-table explicit">
+				            <colgroup>
+				                <col width="300">
+				                <col width="300">
+				                <col width="300">
+				                <col width="300">
+				                <col width="300">
+				                <col>
+				            </colgroup>
+				            <thead>
+				            <tr>
+				                <th>名字</th>
+				                <th>手机</th>
+				                <th>性别</th>
+				                <th>生日</th>
+				                <th>创建日期</th>
+				            </tr>
+				            </thead>
+				            <tbody>
+				            	
+				            </tbody>
+				        </table>
+				        <div id="pageExplicit" style="text-align:center;"></div> 
+				    </div> 
+        </div>
+    </div>
+	</div>
+</div>
+<script src="../../layui/layui.js" charset="utf-8"></script>
+<script src="../../js/jquery-2.1.1.min.js"></script>
+<script type="text/javascript" src="../../js/jquery-json.js"></script>
+<script src="../../js/template.js"></script>
+<script src="../../js/tool.js"></script>
+<script src="../../js/utils.js"></script>
+<script src="../../js/highcharts.js"></script>
+<!-- <script src="../../js/highstock.js"></script> -->
+<script src="../../js/operationData.js"></script>
+
+</body>
+</html>  

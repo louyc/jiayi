@@ -1,0 +1,143 @@
+<!DOCTYPE html>
+<html>
+<head lang="en">
+    <meta charset="UTF-8">
+    <title>后台管理系统</title>
+    <link rel="stylesheet" href="../layui/css/layui.css"/>
+    <link rel="stylesheet" href=""/>
+</head>
+<body>
+<div class="layui-main" style="width: auto">
+    <div class="my-tab-select">
+        <form class="layui-form">
+        <ul>
+            <li>
+                <label for="deviceName">设备名称：</label>
+                <input type="text" class="layui-input" id="deviceName"/>
+            </li>
+            <li>
+                <div class="layui-form-item">
+                    <label class="layui-form-label">设备类型：</label>
+                    <!--<input type="text" class="layui-input" id="ifsj"/>-->
+                    <select name="city">
+                        <option value=""></option>
+                        <option value="1">设备类型1</option>
+                        <option value="2">设备类型2</option>
+                    </select>
+                </div>
+            </li>
+            <li>
+                <label for="vender">厂商名称：</label>
+                <input type="text" class="layui-input" id="vender"/>
+            </li>
+            <li>
+                <label for="brand">品牌名称：</label>
+                <input type="text" class="layui-input" id="brand"/>
+            </li>
+            <li>
+                <div class="layui-form-item">
+                    <label class="layui-form-label">是否上架：</label>
+                    <!--<input type="text" class="layui-input" id="ifsj"/>-->
+                    <select name="city">
+                        <option value=""></option>
+                        <option value="1">已上架</option>
+                        <option value="2">未上架</option>
+                    </select>
+                </div>
+            </li>
+            <li>
+                <div class="layui-form-item">
+                    <label class="layui-form-label">是否租赁：</label>
+                    <!--<input type="text" class="layui-input" id="ifsj"/>-->
+                    <select name="city">
+                        <option value=""></option>
+                        <option value="1">已租赁</option>
+                        <option value="2">未租赁</option>
+                    </select>
+                </div>
+            </li>
+        </ul>
+        </form>
+        <p>
+            <button class="layui-btn ">搜索</button>
+            <button class="layui-btn layui-btn-normal">保存</button>
+        </p>
+    </div>
+    <div class="layui-form">
+        <table class="layui-table" style="width: auto;min-width: 100%">
+            <colgroup>
+                <col width="50">
+                <col width="200">
+                <col width="200">
+                <col width="100">
+                <col width="100">
+                <col width="100">
+                <col width="120">
+                <col width="100">
+                <col width="200">
+                <col width="120">
+                <col width="120">
+                <col width="120">
+                <col>
+            </colgroup>
+            <thead>
+            <tr>
+                <th><input type="checkbox" name="" lay-skin="primary" lay-filter="allChoose"><div class="layui-unselect layui-form-checkbox" lay-skin="primary"><i class="layui-icon"></i></div></th>
+                <th>设备名称</th>
+                <th>设备描述</th>
+                <th>设备类型</th>
+                <th>厂商</th>
+                <th>品牌</th>
+                <th>设备库存</th>
+                <th>设备租金</th>
+                <th>设备投放地址</th>
+                <th>是否上架</th>
+                <th>是否租赁</th>
+                <th>是否存在</th>
+            </tr>
+            </thead>
+            <tbody>
+            <tr>
+                <td><input type="checkbox" name="" lay-skin="primary"><div class="layui-unselect layui-form-checkbox" lay-skin="primary"><i class="layui-icon"></i></div></td>
+                <td>贤心</td>
+                <td>汉族</td>
+                <td>1989-10-14</td>
+                <td>人生似修行</td>
+                <td>贤心</td>
+                <td>汉族</td>
+                <td>1989-10-14</td>
+                <td>人生似修行</td>
+                <td>人生似修行</td>
+                <td>人生似修行</td>
+                <td>人生似修行</td>
+            </tr>
+            </tbody>
+        </table>
+    </div>
+    <div id="pagging"></div>
+</div>
+<script src="../layui/layui.js" charset="utf-8"></script>
+<script>
+    window.onload=function(){
+        layui.use(['form','laypage', 'layer'], function(){
+            var $ = layui.jquery, form = layui.form();
+            var laypage = layui.laypage,layer = layui.layer;
+            //全选
+            form.on('checkbox(allChoose)', function(data){
+                var child = $(data.elem).parents('table').find('tbody input[type="checkbox"]');
+                child.each(function(index, item){
+                    item.checked = data.elem.checked;
+                });
+                form.render('checkbox');
+            });
+            laypage({
+                cont: 'pagging'
+                ,pages: 100
+                ,skip: true
+            });
+
+        });
+    }
+</script>
+</body>
+</html>

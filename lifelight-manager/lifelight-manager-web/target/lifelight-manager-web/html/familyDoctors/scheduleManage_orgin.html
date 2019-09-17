@@ -1,0 +1,244 @@
+<!DOCTYPE html>
+<html>
+<head lang="en">
+    <meta charset="UTF-8">
+    <title>签约服务进度管理</title>
+    <link rel="stylesheet" href="/layui/css/layui.css"/>
+    <link rel="stylesheet" href="/css/listStyle.css"/>
+</head>
+<body>
+<div class="layui-main layui-form" style="width: auto;min-width: 100%">
+	<div class="my-tab-select">
+	    <ul class="search-box layui-form">
+	    	<!-- <li>
+	            <div>
+		    		<label class="layui-form-label">乡镇卫生院：</label>
+	            	<select name="isSign" id="isSign">
+	            		<option value="all">全部</option>
+		            </select>
+	            </div>
+		    </li>
+	    	<li>
+	            <div>
+		    		<label class="layui-form-label">村卫生室：</label>
+	            	<select name="isSign" id="isSign">
+	            		<option value="all">全部</option>
+		            </select>
+	            </div>
+		    </li> -->
+		    <li>
+		    	<label>姓        名：</label>
+		       	<div>
+			      	<input type="text" autocomplete="off" class="layui-input" id="name">
+			    </div>
+	    	</li>
+	    	<li style="vertical-align: top;">
+	            <label>身份证号：</label>
+		       	<div>
+			      	<input type="text" autocomplete="off" class="layui-input" id="cardNum">
+			    </div>
+		    </li>
+   	    	<li style="vertical-align: top">
+	            <div>
+		    		<label class="layui-form-label">签约年度：</label>
+	            	<select name="year" id="year">
+	            		<option value="all">请选择</option>
+	            		<option value="2018">2018</option>
+	            		<option value="2017">2017</option>
+	            		<option value="2016">2016</option>
+	            		<option value="2015">2015</option>
+		            </select>
+	            </div>
+		    </li>
+	    	<li class="my-timer-li">
+	            <label>签约日期：</label>
+		       	<div class="layui-form-item " style="margin-bottom: 0;">
+			       	<div class="layui-input-inline" style="width: 100px;">
+			           <input type="text" name="price_min" autocomplete="off" class="layui-input" id="signStartTime">
+			      	</div>
+			      	<div class="layui-form-mid">-</div>
+			      	<div class="layui-input-inline" style="width: 100px;">
+			        	<input type="text" name="price_max" autocomplete="off" class="layui-input" id="signEndTime">
+			      	</div>
+			    </div>
+		    </li>
+		    <li style="vertical-align: top;">
+	            <div>
+		    		<label class="layui-form-label">审核状态：</label>
+	            	<select name="auditStatus" id="auditStatus">
+	            		<option value="">全部</option>
+	            		<option value="1">通过审核</option>
+	            		<option value="2">未通过审核</option>
+	            		<option value="3">未经过审核</option>
+		            </select>
+	            </div>
+		    </li>
+		    <li style="vertical-align: top;">
+	            <div>
+		    		<label class="layui-form-label">医保类型：</label>
+	            	<select name="medicalType" id="medicalType">
+	            		<option value="">全部</option>
+	            		<option value="1">新农合</option>
+	            		<option value="2">职工医保</option>
+	            		<option value="3">居民医保</option>
+	            		<option value="4">其他或无</option>
+		            </select>
+	            </div>
+		    </li>
+		    <li>
+	            <div>
+		    		<label class="layui-form-label">履约进度：</label>
+	            	<select name="finishStatus" id="finishStatus">
+	            		<option value="">全部</option>
+	            		<option value="1">已完成</option>
+	            		<option value="2">未完成</option>
+		            </select>
+	            </div>
+		    </li>
+		    <li>
+	            <div>
+		    		<label class="layui-form-label">是否有偿：</label>
+	            	<select name="isPayment" id="isPayment">
+	            		<option value="">全部</option>
+	            		<option value="1">有偿服务包</option>
+	            		<option value="2">无偿服务包</option>
+		            </select>
+	            </div>
+		    </li>
+		    <li>
+	            <div>
+		    		<label class="layui-form-label">服务包类型：</label>
+	            	<select name="servicePackage" id="servicePackage" lay-filter="servicePackageFilter">
+	            		<option value="">全部</option>
+						<option value="0">基础包</option>
+						<option value="1">初级包（老年人）</option>
+						<option value="2">初级包(高血压)</option>
+						<option value="3">初级包(糖尿病)</option>
+						<option value="4">初级包(慢性呼吸道疾病)</option>
+						<option value="5">中级包(老年人)</option>
+						<option value="6">中级包(高血压)</option>
+						<option value="7">中级包(糖尿病)</option>
+						<option value="8">中级包（慢性呼吸道疾病）</option>
+						<option value="9">中级包（孕产妇和0-6岁儿童）</option>
+						<option value="10">高级包（老年人）</option>
+						<option value="11">高级包（高血压）</option>
+						<option value="12">高级包（糖尿病）</option>
+						<option value="13">高级包（慢性呼吸道疾病）</option>
+						<option value="14">高级包（孕产妇）</option>
+		            </select>
+	            </div>
+		    </li>
+		    <li>
+	            <div>
+		    		<label class="layui-form-label">检查项：</label>
+	            	<select name="checkList" id="checkList">
+	            		<option value="">全部</option>
+		            </select>
+	            </div>
+		    </li>
+		    <li>
+	            <div>
+		    		<label class="layui-form-label">签约医生：</label>
+	            	<select name="doctorList" id="doctorList">
+	            		<option value="">全部</option>
+		            </select>
+	            </div>
+		    </li>
+    	</ul>
+    	<p>
+    		<span id="numStatistic" style="float: left;font-size: 16px;"></span>
+            <button class="layui-btn" id="search">搜索</button>
+            <button class="layui-btn" id="telePhoneMsg">批量下发短信</button>
+            <button class="layui-btn" id="pushMsg">批量推送消息</button>
+        </p>
+        
+    </div>
+    <div class="layui-tab layui-tab-brief" style="margin-top: 0" lay-filter="docDemoTabBrief">
+		<ul class="layui-tab-title"></ul>
+	</div>
+    <div class="layui-form">
+        <table class="layui-table list-table" id="mainTable">
+            <colgroup>
+                <col width="50">
+                <col width="120">
+                <col width="">
+                <col width="200">
+                <col width="140">
+                <col width="90">
+                <col width="240">
+                <col width="110">
+                <col width="160">
+                <col width="260">
+            </colgroup>
+            <thead>
+            <tr>
+                <th><input type="checkbox" name="" lay-skin="primary" lay-filter="allChoose"></th>
+                <th>姓名</th>
+                <th>签约机构</th>
+                <th>签约时间段</th>
+                <th>服务包类型</th>
+                <th>签约金额</th>
+                <th>系统提示</th>
+                <th>履约状态</th>
+                <th>审核</th>
+                <th>操作</th>
+            </tr>
+            </thead>
+            <tbody></tbody>
+        </table>
+    </div>
+    <div id="infoSign" style="display: none;">
+    	<div class="layui-form">
+	        <table class="layui-table infoSign" lay-skin="line">
+	            <tbody>
+	            	<tr>
+	            		<td style="vertical-align: top;text-align: right;width: 120px;">服务包类型：</td>
+	            		<td id="serviceTypeInfo">
+	            		</td>
+	            	</tr>
+	            	<tr>
+	            		<td style="vertical-align: top;text-align: right;width: 120px;">检查项目：</td>
+	            		<td id="checkProjectInfo">
+		                </td>
+	            	</tr>
+	            </tbody>
+	        </table>
+	    </div>
+    </div>
+    <div id="exportInfo" style="display: none;">
+    	<div class="layui-form" style="padding: 15px">
+	        <div class="layui-form-item">
+			    <label class="layui-form-label">转至医院：<span>*</span></label>
+			    <div class="layui-input-block">
+			        <input type="text" id="toHospital" placeholder="请输入转至医院" class="layui-input">
+			    </div>
+			</div>
+	        <div class="layui-form-item">
+			    <label class="layui-form-label">医生：<span>*</span></label>
+			    <div class="layui-input-block">
+			        <input type="text" id="toDoctor" placeholder="请输入医生" class="layui-input">
+			    </div>
+			</div>
+	        <div class="layui-form-item">
+			    <label class="layui-form-label">原因：<span>*</span></label>
+			    <div class="layui-input-block">
+			        <textarea id="toReason" placeholder="请输入原因" class="layui-textarea"></textarea>
+			    </div>
+			</div>
+			<a href="" id="exportBtn" style="display: none">导出</a>
+	    </div>
+    </div>
+    <div id="pagging"></div>
+    <div id="phoneMsg" style="display: none;padding: 0 15px;padding-top: 20px;">
+    	<div class="layui-form-item layui-form-text">
+        	<textarea name="desc" maxlength="70" id="phoneMsg_text" placeholder="请输入短信内容" class="layui-textarea"></textarea>
+    	</div>
+    </div>
+</div>
+<script src="/layui/layui.js" charset="utf-8"></script>
+<script src="/js/jquery-2.1.1.min.js"></script>
+<script src="/js/jquery-json.js"></script>
+<script src="/js/tool.js"></script>
+<script src="/js/familyDoctors/scheduleManage_orgin.js"></script>
+</body>
+</html>

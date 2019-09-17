@@ -1,0 +1,68 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<beans xmlns="http://www.springframework.org/schema/beans"
+	xmlns:context="http://www.springframework.org/schema/context"
+	xmlns:mvc="http://www.springframework.org/schema/mvc"
+	xmlns:tx="http://www.springframework.org/schema/tx"
+	xmlns:aop="http://www.springframework.org/schema/aop"
+	xmlns:cache="http://www.springframework.org/schema/cache"
+	xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"
+	xsi:schemaLocation="http://www.springframework.org/schema/beans
+        http://www.springframework.org/schema/beans/spring-beans.xsd
+        http://www.springframework.org/schema/context
+        http://www.springframework.org/schema/context/spring-context.xsd 
+        http://www.springframework.org/schema/mvc
+        http://www.springframework.org/schema/mvc/spring-mvc.xsd
+        http://www.springframework.org/schema/tx
+        http://www.springframework.org/schema/tx/spring-tx.xsd
+        http://www.springframework.org/schema/aop
+        http://www.springframework.org/schema/aop/spring-aop.xsd
+        http://www.springframework.org/schema/cache
+        http://www.springframework.org/schema/cache/spring-cache.xsd">
+
+	<!-- 定时器工作调度的bean -->
+	<bean id="myJob" class="com.lifelight.web.job.MyJob"></bean>
+
+	<!-- 定时任务 -->
+	<!-- 定义调用对象和调用对象的方法 -->
+	<bean id="jobtask"
+		class="org.springframework.scheduling.quartz.MethodInvokingJobDetailFactoryBean">
+		<!-- 调用的类 -->
+		<property name="targetObject" ref="myJob" />
+		<!-- 调用类中的方法 -->
+		<property name="targetMethod" value="startQuartz" />
+		<!-- 是否并发 -->
+		<property name="concurrent" value="false" />
+	</bean>
+
+	<!-- 定义触发时间 -->
+	<bean id="cronTrigger"
+		class="org.springframework.scheduling.quartz.CronTriggerFactoryBean">
+		<property name="jobDetail" ref="jobtask" />
+		<!-- cron表达式 -->
+		<property name="cronExpression" value="0 0 12 1 1 ? *" />
+		<!-- <property name="cronExpression" value="0/4 * * * * ?" /> -->
+	</bean>
+	
+	<bean id="doJobOnceOnStartupTrigger"
+		class="org.springframework.scheduling.quartz.SimpleTriggerFactoryBean">
+		<property name="jobDetail" ref="jobtask" />
+		<property name="startDelay" value="5000" />
+		<property name="repeatCount" value="0" />
+	</bean>
+
+	<!-- 总管理类 如果将lazy-init='false'那么容器启动就会执行调度程序 -->
+	<bean id="startQuertz" lazy-init="true" autowire="no"
+		class="org.springframework.scheduling.quartz.SchedulerFactoryBean">
+		<property name="triggers">
+			<list>
+				<ref bean="cronTrigger" />
+			</list>
+		</property>
+	</bean>
+
+	<bean id="quartzManager"
+		class="com.lifelight.web.job.QuartzManager" lazy-init="false"
+		init-method="startJobs">
+		<property name="scheduler" ref="startQuertz" />
+	</bean>
+</beans>

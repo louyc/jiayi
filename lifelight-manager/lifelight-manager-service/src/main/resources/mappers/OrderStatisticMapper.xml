@@ -1,0 +1,291 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE mapper PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN" "http://mybatis.org/dtd/mybatis-3-mapper.dtd">
+<mapper namespace="com.lifelight.dubbo.dao.OrderStatisticMapper">
+	
+	<resultMap id="PurchaseResultMap" type="com.lifelight.api.vo.OrderPurchaseVO">
+		<!-- 订单价格   数据统计返回对象 -->
+		<result column="relation_id" jdbcType="INTEGER" property="relationId" />
+		<result column="relation_name" jdbcType="VARCHAR" property="relationName" />
+		<result column="relation_supplier" jdbcType="VARCHAR" property="relationSupplier" />
+		<result column="relation_supplier_id" jdbcType="VARCHAR" property="relationSupplierId" />
+		<result column="type" jdbcType="INTEGER" property="type" />
+		<result column="type_desc" jdbcType="VARCHAR" property="typeDesc" />
+		<result column="buy_count" jdbcType="DOUBLE" property="buyCount" />
+		<result column="price_count" jdbcType="DOUBLE" property="priceCount" />
+	</resultMap>
+	
+	<resultMap id="StatisticResultMap" type="com.lifelight.api.vo.OrderStatisticVO">
+		<!-- 订单数据对象 -->
+		<id column="id" jdbcType="INTEGER" property="id" />
+		<result column="order_code" jdbcType="VARCHAR" property="orderCode" />
+		<result column="relation_id" jdbcType="INTEGER" property="relationId" />
+		<result column="relation_name" jdbcType="VARCHAR" property="relationName" />
+		<result column="relation_supplier" jdbcType="VARCHAR" property="relationSupplier" />
+		<result column="relation_supplier_id" jdbcType="VARCHAR" property="relationSupplierId" />
+		<result column="relation_img_url" jdbcType="VARCHAR" property="relationImgUrl" />
+		<result column="relation_code" jdbcType="VARCHAR" property="relationCode" />
+		<result column="relation_code_name" jdbcType="VARCHAR" property="relationCodeName" />
+		<result column="relation_price" jdbcType="DOUBLE" property="relationPrice" />
+		<result column="type" jdbcType="VARCHAR" property="type" />
+		<result column="type_desc" jdbcType="VARCHAR" property="typeDesc" />
+		<result column="price" jdbcType="DOUBLE" property="price" />
+		<result column="order_count" jdbcType="INTEGER" property="orderCount" />
+		<result column="pay_status" jdbcType="INTEGER" property="payStatus" />
+		<result column="user_id" jdbcType="VARCHAR" property="userId" />
+		<result column="user_name" jdbcType="VARCHAR" property="userName" />
+		<result column="user_mobile" jdbcType="VARCHAR" property="userMobile" />
+		<result column="back_manager_id" jdbcType="VARCHAR" property="backManagerId" />
+		<result column="back_user_name" jdbcType="VARCHAR" property="backUserName" />
+		<result column="back_user_mobile" jdbcType="VARCHAR" property="backUserMobile" />
+		<result column="create_time" jdbcType="TIMESTAMP" property="createTime" />
+		<result column="update_time" jdbcType="TIMESTAMP" property="updateTime" />
+		<result column="in_use" jdbcType="INTEGER" property="inUse" />
+		<result column="keywords_type" jdbcType="INTEGER" property="keywordsType" />
+	</resultMap>
+	
+	<resultMap id="DutiesResultMap" type="com.lifelight.api.vo.OrderDutiesVO">
+		<!-- 订单价格   数据统计返回对象 -->
+		<result column="rel_id" jdbcType="INTEGER" property="relId" />
+		<result column="user_id" jdbcType="VARCHAR" property="userId" />
+		<result column="user_name" jdbcType="VARCHAR" property="userName" />
+		<result column="user_mobile" jdbcType="VARCHAR" property="userMobile" />
+		<result column="sign_user_name" jdbcType="INTEGER" property="signUserName" />
+		<result column="doctor_id" jdbcType="VARCHAR" property="doctorId" />
+		<result column="doctor_name" jdbcType="VARCHAR" property="doctorName" />
+		<result column="doctor_mobile" jdbcType="VARCHAR" property="doctorMobile" />
+		<result column="org_id" jdbcType="VARCHAR" property="orgId" />
+		<result column="build_type" jdbcType="INTEGER" property="buildType" />
+		<result column="order_id" jdbcType="INTEGER" property="orderId" />
+		<result column="order_code" jdbcType="VARCHAR" property="orderCode" />
+		<result column="service_id" jdbcType="INTEGER" property="servieId" />
+		<result column="service_name" jdbcType="VARCHAR" property="serviceName" />
+		<result column="report_count" jdbcType="INTEGER" property="reportCount" />
+		<result column="create_time" jdbcType="TIMESTAMP" property="createTime" />
+		<result column="keywords_type" jdbcType="INTEGER" property="keywordsType" />
+	</resultMap>
+	
+	<sql id="Purchase_Where_Column">
+		<!-- 订单价格 数据统计 查询条件 -->
+		<where>
+			in_use = 1 
+			AND pay_status = 1
+			<if test="relationId != null and relationId != '' ">
+				AND relation_id = #{relationId,jdbcType=VARCHAR}
+			</if>
+			<if test="relationName != null and relationName != '' ">
+				AND relation_name LIKE CONCAT(#{relationName,jdbcType=VARCHAR},'%')
+			</if>
+			<if test="relationSupplierId != null and relationSupplierId != '' ">
+				AND relation_supplier_id = #{relationSupplierId,jdbcType=VARCHAR}
+			</if>
+			<if test="relationSupplier != null and relationSupplier != '' ">
+				AND relation_supplier LIKE CONCAT(#{relationSupplier,jdbcType=VARCHAR},'%')
+			</if>
+			<if test="startTime != null and startTime != '' ">
+				AND create_time &gt;= #{startTime,jdbcType=TIMESTAMP}
+			</if>
+			<if test="endTime != null and endTime != '' ">
+				AND create_time &lt;= #{endTime,jdbcType=TIMESTAMP}
+			</if>
+			<if test="type != null and type != '' ">
+				AND type = #{type,jdbcType=INTEGER}
+			</if>
+			<if test="keyWordsType != null and keyWordsType != '' ">
+				AND keywords_type = #{keyWordsType,jdbcType=INTEGER}
+			</if>
+		</where>
+	</sql>
+	
+	<sql id="Purchase_OrderBy_Column">
+		<!-- 订单价格 数据统计 动态排序逻辑 -->
+		<if test="orderColumn != null and orderColumn.size() > 0 ">
+			ORDER BY create_time DESC 
+			<foreach collection="orderColumn" item="item" >
+				<if test = 'item.orderColumnName == "relation_id" or item.orderColumnName == "relation_name" 
+							or item.orderColumnName == "relation_supplier_id" or item.orderColumnName == "relation_supplier"  
+							or item.orderColumnName == "price_count" or item.orderColumnName == "buy_count"  
+							or item.orderColumnName == "type"  ' >
+					, ${item.orderColumnName}
+					<if test='item.sortType == "DESC" '> DESC </if>
+					<if test='item.sortType == "ASC" '> ASC </if>
+				</if>
+			</foreach>
+		</if>
+	</sql>
+	
+	<select id="orderPurchaseInfoListPage" resultMap="PurchaseResultMap" parameterType="com.lifelight.api.dto.OrderStatisticDTO" >
+		<!-- 订单价格 数据统计 （无类型区分查询） -->
+		<include refid="SQL_OrderPurchaseInfo" />
+	</select>
+	
+	<select id="orderPurchaseInfo" resultMap="PurchaseResultMap" parameterType="com.lifelight.api.dto.OrderStatisticDTO" >
+		<!-- 订单价格 数据统计 （无类型区分查询） -->
+		<include refid="SQL_OrderPurchaseInfo" />
+	</select>
+	
+	<sql id="SQL_OrderPurchaseInfo" >
+		<!-- 订单价格 数据统计 （无类型区分查询） -->
+		SELECT
+			<choose>
+				<when test="groupColumn == 0">
+					relation_id , relation_name , 
+				</when>
+				<when test="groupColumn == 1">
+					relation_supplier_id ,  relation_supplier ,
+				</when>
+				<otherwise>
+					relation_id , relation_name , 
+					relation_supplier_id ,  relation_supplier ,
+				</otherwise>
+			</choose>
+			id , SUM(price) AS price_count , SUM(order_count) AS buy_count , type , type_desc
+		FROM
+		<choose>
+			<when test="keyWordsType != null and keyWordsType != '' ">
+				order_detail_keywords
+			</when>
+			<otherwise>
+				order_detail_info
+			</otherwise>
+		</choose>
+			
+		<include refid="Purchase_Where_Column" />
+		<!-- 动态分组逻辑 -->	
+		GROUP BY
+		<choose>
+			<when test="groupColumn == 0">
+				relation_id
+			</when>
+			<when test="groupColumn == 1">
+				relation_supplier_id
+			</when>
+			<otherwise>
+				relation_id , relation_supplier_id
+			</otherwise>
+		</choose>
+		
+		<include refid="Purchase_OrderBy_Column" />
+	</sql>
+	
+	<select id="orderPurchaseDetailListPage" resultMap="StatisticResultMap" parameterType="com.lifelight.api.dto.OrderStatisticDTO" >
+		<!-- 订单购买统计 详情 -->
+		<include refid="SQL_OrderPurchaseDetail" />
+	</select>
+	
+	<select id="orderPurchaseDetail" resultMap="StatisticResultMap" parameterType="com.lifelight.api.dto.OrderStatisticDTO" >
+		<!-- 订单购买统计 详情 -->
+		<include refid="SQL_OrderPurchaseDetail" />
+	</select>
+	
+	<sql id="SQL_OrderPurchaseDetail" >
+		<!-- 订单购买统计 详情 -->
+		SELECT 
+			id , order_code , relation_id , relation_name , relation_supplier , relation_supplier_id , relation_img_url ,
+			relation_code , relation_code_name , relation_price , type , type_desc , price , order_count ,
+			pay_status , user_id , user_name , user_mobile , back_manager_id , back_user_name , back_user_mobile ,
+			create_time , update_time , in_use , keywords_type
+		FROM
+			order_detail_name
+		<include refid="Purchase_Where_Column" />
+	</sql>
+	
+	<select id="orderDutiesListPage" resultMap="DutiesResultMap" parameterType="com.lifelight.api.dto.OrderDutiesDTO" >
+		<!-- 履约情况统计 列表查询 -->
+		<include refid="SQL_OrderDuties" />
+	</select>
+	
+	<select id="orderDuties" resultMap="DutiesResultMap" parameterType="com.lifelight.api.dto.OrderDutiesDTO" >
+		<!-- 履约情况统计 列表查询 -->
+		<include refid="SQL_OrderDuties" />
+	</select>
+	
+	<sql id="SQL_OrderDuties" >
+		<!-- 履约情况统计 列表查询 -->
+		SELECT 
+			det.rel_id , det.user_id , det.user_name , det.user_mobile , det.sign_user_name ,
+			det.doctor_id , det.doctor_name , det.doctor_mobile , det.org_id , det.build_type ,
+			det.order_id , det.order_code , det.service_id , det.service_name  , det.report_count ,
+			det.create_time
+		FROM (
+			SELECT
+				rel.rel_id AS rel_id ,
+				rel.user_id AS user_id ,
+				us.`name` AS user_name ,
+				us.mobile AS user_mobile ,
+				rel.sign_user_name ,
+				rel.doctor_id AS doctor_id ,
+				bus.`name` AS doctor_name ,
+				bus.mobile AS doctor_mobile ,
+				rel.org_id AS org_id ,
+				rel.build_type AS build_type ,
+				ord.id AS order_id ,
+				ord.order_code AS order_code ,
+				ord.relation_id AS service_id ,
+				ord.relation_name AS service_name  ,
+				COUNT(rep.id) AS report_count ,
+				rel.create_time AS create_time ,
+				ord.keywords_type AS keywords_type
+			FROM
+				 jy_user_sign_rel AS rel 
+			LEFT JOIN order_detail_keywords AS ord ON ord.back_manager_id = rel.doctor_id AND ord.type = 1 AND ord.pay_status = 1
+			LEFT JOIN api_user_info AS us ON rel.user_id = us.manager_id AND us.in_use = 1
+			LEFT JOIN backstage_user_info AS bus ON bus.manager_id = rel.doctor_id AND bus.in_use = 1
+			LEFT JOIN report_info AS rep ON rep.order_id = ord.id 
+			GROUP BY ord.id , rel.user_id 
+		) AS det
+		<!-- WHERE -->
+		<where>
+			<if test="doctorId != null and doctorId != '' ">
+				AND det.doctor_id = #{doctorId,jdbcType=VARCHAR}
+			</if>
+			<if test="orgId != null and orgId != '' ">
+				AND det.org_id = #{orgId,jdbcType=VARCHAR}
+			</if>
+			<if test="startCountNum != null and startCountNum != '' ">
+				AND det.report_count &gt;= #{startCountNum,jdbcType=INTEGER}
+			</if>
+			<if test="endCountNum != null and endCountNum != '' ">
+				AND det.report_count &lt;= #{endCountNum,jdbcType=INTEGER}
+			</if>
+			<if test="buildType != null and buildType != '' ">
+				AND det.build_type = #{buildType,jdbcType=INTEGER}
+			</if>
+			
+			<if test="startTime != null and startTime != '' ">
+				AND det.create_time &gt;= #{startTime,jdbcType=TIMESTAMP}
+			</if>
+			<if test="endTime != null and endTime != '' ">
+				AND det.create_time &lt;= #{endTime,jdbcType=TIMESTAMP}
+			</if>
+			<if test="keyWordsType != null and keyWordsType != '' ">
+				AND det.keywords_type = #{keyWordsType,jdbcType=INTEGER}
+			</if>
+		</where>
+		<!-- ORDER BY -->
+		<if test="orderColumn != null and orderColumn.size() > 0 ">
+			ORDER BY create_time DESC
+			<foreach collection="orderColumn" item="item" >
+				<if test = 'item.orderColumnName == "report_count" 
+							or item.orderColumnName == "service_id" or item.orderColumnName == "order_id"  
+							or item.orderColumnName == "org_id" or item.orderColumnName == "doctor_id"  
+							or item.orderColumnName == "user_id"  ' >
+					, ${item.orderColumnName}
+					<if test='item.sortType == "DESC" '> DESC </if>
+					<if test='item.sortType == "ASC" '> ASC </if>
+				</if>
+			</foreach>
+		</if>
+	</sql>
+	
+	<select id="orderPurchaseTotalCount" resultType="com.lifelight.api.vo.OrderCountVO" parameterType="com.lifelight.api.dto.OrderStatisticDTO" >
+		<!-- 订单购买金额、数量 合计统计 -->
+		SELECT 
+			 COUNT(id) AS statisticCount , 
+			 SUM(price) AS countPrice , 
+			 SUM(order_count) AS countNumber 
+		FROM
+			order_detail_name
+		<include refid="Purchase_Where_Column" />
+	</select>
+	
+</mapper>
