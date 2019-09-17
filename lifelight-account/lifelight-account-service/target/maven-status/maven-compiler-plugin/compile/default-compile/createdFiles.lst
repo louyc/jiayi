@@ -1,0 +1,6 @@
+com\lifelight\dubbo\service\impl\DemoServiceImpl.class
+com\lifelight\dubbo\service\impl\JWTTokenServiceImpl.class
+com\lifelight\dubbo\dao\HandleLogMapper.class
+com\lifelight\dubbo\dao\ManagerInfoMapper.class
+com\lifelight\dubbo\dao\UserMessageMapper.class
+com\lifelight\dubbo\service\impl\ManagerServiceImpl.class

@@ -1,0 +1,4 @@
+com\lifelight\web\controller\ManagerController.class
+com\lifelight\web\controller\DemoController.class
+com\lifelight\web\Interceptor\AutorizadorInterceptor.class
+com\lifelight\web\service\TokenService.class

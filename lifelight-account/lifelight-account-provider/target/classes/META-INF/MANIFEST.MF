@@ -1,0 +1,35 @@
+Manifest-Version: 1.0
+Built-By: Administrator
+Class-Path: . lib/lifelight-account-service-0.0.1-SNAPSHOT.jar lib/lif
+ elight-account-api-0.0.1-SNAPSHOT.jar lib/lifelight-common-0.0.1-SNAP
+ SHOT.jar lib/spring-core-4.1.9.RELEASE.jar lib/commons-logging-1.2.ja
+ r lib/spring-beans-4.1.9.RELEASE.jar lib/spring-context-4.1.9.RELEASE
+ .jar lib/spring-aop-4.1.9.RELEASE.jar lib/aopalliance-1.0.jar lib/spr
+ ing-expression-4.1.9.RELEASE.jar lib/spring-tx-4.1.9.RELEASE.jar lib/
+ spring-web-4.1.9.RELEASE.jar lib/spring-webmvc-4.1.9.RELEASE.jar lib/
+ spring-jdbc-4.1.9.RELEASE.jar lib/dubbo-2.5.3.jar lib/javassist-3.15.
+ 0-GA.jar lib/netty-3.2.5.Final.jar lib/zookeeper-3.4.6.jar lib/slf4j-
+ api-1.6.1.jar lib/jline-0.9.94.jar lib/junit-4.11.jar lib/hamcrest-co
+ re-1.3.jar lib/netty-3.7.0.Final.jar lib/curator-framework-1.1.10.jar
+  lib/curator-client-1.1.10.jar lib/guava-11.0.1.jar lib/jsr305-1.3.9.
+ jar lib/zkclient-0.6.jar lib/jstl-1.2.jar lib/mybatis-spring-1.2.2.ja
+ r lib/druid-1.0.12.jar lib/aspectjweaver-1.8.4.jar lib/jackson-mapper
+ -asl-1.9.13.jar lib/jackson-core-asl-1.9.13.jar lib/fastjson-1.2.28.j
+ ar lib/jackson-annotations-2.6.0.jar lib/jackson-core-2.6.0.jar lib/j
+ ackson-databind-2.6.0.jar lib/commons-io-2.4.jar lib/commons-fileuplo
+ ad-1.2.2.jar lib/mybatis-3.2.8.jar lib/spring-data-redis-1.6.4.RELEAS
+ E.jar lib/spring-oxm-4.1.9.RELEASE.jar lib/spring-context-support-4.1
+ .9.RELEASE.jar lib/jcl-over-slf4j-1.7.13.jar lib/jedis-2.8.0.jar lib/
+ commons-pool2-2.3.jar lib/commons-lang3-3.5.jar lib/httpclient-4.3.2.
+ jar lib/httpcore-4.3.1.jar lib/commons-codec-1.6.jar lib/weixin4j-mp-
+ 1.6.8.jar lib/weixin4j-base-1.6.8.jar lib/dom4j-1.6.1.jar lib/xml-api
+ s-1.0.b2.jar lib/jaxen-1.1-beta-11.jar lib/jdom-1.0.jar lib/xom-1.0b3
+ .jar lib/icu4j-2.6.1.jar lib/xalan-2.6.0.jar lib/tagsoup-0.9.7.jar li
+ b/xmlParserAPIs-2.6.2.jar lib/jcabi-log-0.17.2.jar lib/jcabi-aspects-
+ 0.22.jar lib/aspectjrt-1.8.4.jar lib/validation-api-1.1.0.Final.jar l
+ ib/log4j-1.2.17.jar lib/slf4j-log4j12-1.7.12.jar lib/mysql-connector-
+ java-5.1.23.jar
+Build-Jdk: 1.8.0_181
+Created-By: Maven Integration for Eclipse
+Main-Class: com.alibaba.dubbo.container.Main
+
